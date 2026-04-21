@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Cash Ledger</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --blue:#1A56DB;--blue-d:#1344B5;--blue-l:#EBF5FF;
+  --green:#047857;--green-l:#ECFDF5;
+  --red:#B91C1C;--red-l:#FEF2F2;
+  --orange:#C2410C;--orange-l:#FFF7ED;
+  --purple:#5B21B6;--purple-l:#F5F3FF;
+  --amber:#92400E;--amber-l:#FFFBEB;
+  --teal:#0F766E;--teal-l:#F0FDFA;
+  --text:#111827;--text2:#6B7280;--text3:#9CA3AF;
+  --border:#E5E7EB;--bg:#F3F4F6;--white:#fff;
+  --r:14px;--rs:10px;--rxs:7px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:var(--text);touch-action:manipulation}
+.app{width:100%;max-width:430px;height:100vh;height:100dvh;margin:0 auto;background:var(--white);display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.1)}
+.pg{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--white);transition:transform .25s ease;transform:translateX(100%);z-index:1}
+.pg.active{transform:translateX(0);z-index:2}
+.pg.base{transform:translateX(0);z-index:1}
+.tb{padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--white)}
+.logo{font-size:19px;font-weight:800;color:var(--blue);letter-spacing:-.5px}
+.logo em{color:var(--green);font-style:normal}
+.tb-back{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:none;background:var(--bg);border-radius:50%;font-size:18px;cursor:pointer;color:var(--text);flex-shrink:0;touch-action:manipulation}
+.tb-title{font-size:15px;font-weight:700}
+.tb-r{display:flex;gap:8px;align-items:center}
+.cur-badge{background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;border:1px solid #BFDBFE;cursor:pointer}
+.biz-btn{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;max-width:130px}
+.biz-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px}
+.pg-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+.pg-body::-webkit-scrollbar{width:3px}
+.pg-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.bal-card{background:var(--blue);color:#fff;margin:12px;border-radius:var(--r);padding:16px 18px}
+.bal-lbl{font-size:10px;opacity:.75;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.bal-amt{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:14px}
+.bal-row{display:flex;gap:8px}
+.bal-col{flex:1;background:rgba(255,255,255,.13);border-radius:10px;padding:9px 12px}
+.bal-col-l{font-size:9px;opacity:.7;font-weight:600;margin-bottom:2px}
+.bal-col-v{font-size:14px;font-weight:700}
+.col-g{color:#6EE7B7}.col-r{color:#FCA5A5}
+.chips{display:flex;gap:6px;padding:10px 12px 6px;overflow-x:auto;flex-shrink:0}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);cursor:pointer;white-space:nowrap;background:var(--white);color:var(--text2);user-select:none;touch-action:manipulation}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.srch{padding:6px 12px 2px}
+.srch input{width:100%;padding:9px 14px;border:1px solid var(--border);border-radius:30px;font-size:13px;background:var(--bg);outline:none;font-family:inherit;color:var(--text)}
+.srch input:focus{border-color:var(--blue);background:var(--white)}
+.tx-list{padding:4px 12px 4px}
+.tx-dh{font-size:10px;color:var(--text3);font-weight:700;padding:10px 2px 5px;text-transform:uppercase;letter-spacing:.5px}
+.tx-row{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--white);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:7px;cursor:pointer;touch-action:manipulation}
+.tx-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.tx-ico.i{background:var(--green-l)}.tx-ico.e{background:var(--red-l)}.tx-ico.t{background:#F0F9FF}.tx-ico.j{background:var(--purple-l)}
+.tx-body{flex:1;min-width:0}
+.tx-desc{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.tx-amt{font-size:13px;font-weight:700;flex-shrink:0;text-align:right}
+.tx-amt.i{color:var(--green)}.tx-amt.e{color:var(--red)}.tx-amt.t{color:var(--blue)}
+.empty{text-align:center;padding:50px 20px;color:var(--text3)}
+.empty-ic{font-size:40px;margin-bottom:10px}
+.fabs{position:absolute;bottom:65px;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:0 14px;z-index:10;pointer-events:none}
+.fab{pointer-events:all;padding:12px 16px;border-radius:30px;font-size:13px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 4px 16px rgba(0,0,0,.18);color:#fff;user-select:none;white-space:nowrap;flex:1;justify-content:center;max-width:148px;touch-action:manipulation}
+.fab.fi{background:var(--green)}.fab.fe{background:var(--red)}.fab.fm{background:var(--blue)}
+.bnav{background:var(--white);border-top:1px solid var(--border);display:flex;height:60px;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--text3);gap:2px;border:none;background:none;cursor:pointer;font-family:inherit;user-select:none;padding:4px 0;touch-action:manipulation}
+.ni.on{color:var(--blue)}
+.ni-ic{font-size:20px}
+.form-body{padding:14px 16px 20px}
+.type-tog{display:flex;background:var(--bg);border-radius:var(--r);padding:4px;margin-bottom:14px;gap:3px}
+.tt{flex:1;padding:9px 4px;border-radius:10px;font-size:11px;font-weight:700;border:none;cursor:pointer;background:none;color:var(--text2);font-family:inherit;white-space:nowrap;touch-action:manipulation}
+.tt.on.i{background:var(--green);color:#fff}.tt.on.e{background:var(--red);color:#fff}.tt.on.t{background:var(--blue);color:#fff}.tt.on.j{background:var(--purple);color:#fff}
+.amt-box{background:var(--bg);border-radius:var(--r);padding:14px;margin-bottom:14px;text-align:center}
+.amt-sym{font-size:18px;font-weight:700;color:var(--text2)}
+.amt-in{font-size:32px;font-weight:800;color:var(--text);border:none;background:none;outline:none;width:190px;text-align:center;font-family:inherit;-webkit-appearance:none}
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.fld input,.fld select,.fld textarea{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--white);outline:none;font-family:inherit;color:var(--text);-webkit-appearance:none;appearance:none}
+.fld select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.fld textarea{resize:none}
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.cc{padding:8px 4px;border:1px solid var(--border);border-radius:var(--rxs);font-size:11px;text-align:center;cursor:pointer;background:var(--white);color:var(--text2);font-weight:500;line-height:1.3;user-select:none;word-break:break-word;touch-action:manipulation}
+.cc.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue);font-weight:700}
+.add-cat-btn{display:flex;align-items:center;justify-content:center;gap:4px;padding:8px;border:1px dashed var(--border);border-radius:var(--rxs);font-size:11px;color:var(--blue);cursor:pointer;background:none;font-family:inherit;font-weight:600;width:100%;margin-top:6px;touch-action:manipulation}
+.save-btn{width:100%;padding:15px;border-radius:var(--r);font-size:15px;font-weight:800;border:none;cursor:pointer;color:#fff;margin-top:14px;font-family:inherit;touch-action:manipulation}
+.save-btn.i{background:var(--green)}.save-btn.e{background:var(--red)}.save-btn.t{background:var(--blue)}.save-btn.j{background:var(--purple)}
+.sec-hd{padding:14px 16px 6px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin:0 12px 10px}
+.card h3{font-size:11px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px 2px}
+.sbox{background:var(--bg);border-radius:var(--rs);padding:12px 13px}
+.sbox .sl{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
+.sbox .sv{font-size:17px;font-weight:800}
+.bar-wrap{display:flex;align-items:flex-end;gap:4px;height:80px}
+.bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar{width:100%;border-radius:3px 3px 0 0}
+.blbl{font-size:9px;color:var(--text3)}
+.ai-box{background:var(--blue-l);border:1px solid #BFDBFE;border-radius:var(--rs);padding:12px 14px;margin:8px 12px}
+.ai-title{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:3px}
+.ai-txt{font-size:12px;color:#1E3A8A;line-height:1.55}
+.exp-btns{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px 16px;margin-top:4px}
+.exp-btn{flex:1;min-width:calc(50% - 4px);display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 8px;border-radius:var(--rs);font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--white);cursor:pointer;color:var(--text);font-family:inherit;touch-action:manipulation}
+.exp-btn.pdf{background:var(--red-l);color:var(--red);border-color:#FECACA}
+.exp-btn.pl{background:var(--blue-l);color:var(--blue);border-color:#BFDBFE}
+.mem-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--white);border-radius:var(--rs);border:1px solid var(--border);margin:0 12px 8px}
+.av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.mbody{flex:1}.mn{font-size:13px;font-weight:600}.mr{font-size:11px;color:var(--text3);margin-top:1px}
+.badge{padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.badge.pa{background:#ECFDF5;color:#047857}.badge.ad{background:#EBF5FF;color:#1A56DB}.badge.em{background:#F5F3FF;color:#5B21B6}
+.sett-row{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--white);border-bottom:1px solid var(--border);cursor:pointer;touch-action:manipulation}
+.sett-ico{font-size:18px;width:24px;text-align:center}
+.sett-body{flex:1}.sett-title{font-size:13px;font-weight:500}.sett-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.sett-arr{color:var(--text3);font-size:16px}
+.toggle{width:42px;height:24px;background:var(--border);border-radius:12px;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s;touch-action:manipulation}
+.toggle.on{background:var(--blue)}
+.toggle-k{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-k{transform:translateX(18px)}
+.cur-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
+.cur-card{border:1px solid var(--border);border-radius:var(--rs);padding:12px;cursor:pointer;background:var(--white);position:relative;touch-action:manipulation}
+.cur-card.on{border-color:var(--blue);background:var(--blue-l)}
+.cur-sym{font-size:20px;font-weight:800}.cur-name{font-size:11px;color:var(--text2);margin-top:2px}.cur-ctry{font-size:10px;color:var(--text3)}
+.cur-dot{position:absolute;top:8px;right:8px;width:8px;height:8px;background:var(--blue);border-radius:50%}
+.acct-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;cursor:pointer;touch-action:manipulation}
+.acct-type{font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.acct-name{font-size:14px;font-weight:600;margin-top:2px}
+.acct-bal{font-size:18px;font-weight:800;margin-top:4px}
+.inv-row{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--white);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:8px}
+.bud-card{background:var(--white);border:1px solid var(--border);border-radius:var(--rs);padding:13px 14px;margin-bottom:10px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-bg.center{align-items:center}
+.modal{background:var(--white);border-radius:20px 20px 0 0;padding:16px 16px 30px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal.center-m{border-radius:16px;margin:16px;max-height:88vh}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:14px}
+.modal-close{float:right;background:var(--bg);border:none;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.rcpt-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13px;gap:10px}
+.rcpt-row:last-of-type{border:none;font-weight:700;font-size:14px}
+.rcpt-lbl{color:var(--text2);flex-shrink:0}.rcpt-val{text-align:right;word-break:break-word}
+.modal-btn{width:100%;padding:13px;border-radius:var(--rs);font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;margin-top:8px;touch-action:manipulation}
+.modal-btn.primary{background:var(--blue);color:#fff}
+.modal-btn.danger{background:var(--red-l);color:var(--red);border:1px solid #FECACA}
+.step-card{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+.step-hd{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-title{font-size:14px;font-weight:700}
+.step-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.step-tip{background:var(--amber-l);border-left:3px solid #F59E0B;padding:7px 10px;margin-top:8px;font-size:11px;color:var(--amber);line-height:1.5;border-radius:0 var(--rxs) var(--rxs) 0}
+.feat-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;margin:3px;border:1px solid var(--border);background:var(--blue-l);color:var(--blue)}
+.pin-screen{position:fixed;inset:0;background:var(--blue);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;touch-action:manipulation}
+.pin-logo{font-size:26px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-.5px}
+.pin-logo em{color:#6EE7B7;font-style:normal}
+.pin-sub{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:28px;text-align:center;line-height:1.5;max-width:260px}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px}
+.pd{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);background:transparent;transition:all .15s}
+.pd.f{background:#fff;border-color:#fff}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px}
+.pk{padding:17px;border-radius:14px;font-size:22px;font-weight:700;border:none;cursor:pointer;background:rgba(255,255,255,.15);color:#fff;font-family:inherit;user-select:none;touch-action:manipulation}
+.pk:active{background:rgba(255,255,255,.3)}
+.pin-err{color:#FCA5A5;font-size:12px;margin-top:10px;min-height:18px;text-align:center}
+.pin-rst{margin-top:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.9);font-size:12px;font-weight:600;padding:11px 24px;border-radius:20px;cursor:pointer;font-family:inherit;touch-action:manipulation}
+.auth-wrap{position:fixed;inset:0;background:var(--bg);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.auth-logo{font-size:24px;font-weight:800;color:var(--blue);text-align:center;margin-bottom:4px}
+.auth-logo em{color:var(--green);font-style:normal}
+.auth-tag{font-size:12px;color:var(--text2);text-align:center;margin-bottom:20px}
+.auth-card{background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:20px;width:100%;max-width:360px}
+.auth-tabs{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:16px}
+.auth-tab{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:none;color:var(--text2);font-family:inherit;touch-action:manipulation}
+.auth-tab.on{background:var(--white);color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.auth-in{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:var(--rs);font-size:14px;background:var(--white);outline:none;font-family:inherit;color:var(--text);margin-bottom:10px;-webkit-appearance:none}
+.auth-in:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+.auth-btn{width:100%;padding:14px;border-radius:var(--rs);font-size:14px;font-weight:800;border:none;cursor:pointer;color:#fff;background:var(--blue);font-family:inherit;touch-action:manipulation}
+.auth-note{font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.6}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(30px);background:#1F2937;color:#fff;padding:10px 20px;border-radius:30px;font-size:12px;font-weight:500;z-index:999;white-space:nowrap;opacity:0;transition:all .3s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:360px){
+  .bal-amt{font-size:22px}.fab{font-size:12px;padding:10px 10px}.pin-pad{width:215px}.pk{padding:14px;font-size:19px}
+}
+@media print{
+  .pin-screen,.auth-wrap,.bnav,.fabs,.tb,.chips,.srch,#emg-bar,.ai-box{display:none!important}
+  .app{box-shadow:none;max-width:100%;height:auto}.pg{position:static;transform:none}.pg-body{overflow:visible;padding:0}
+}
+</style>
+</head>
+<body>
+
+<!-- EMERGENCY RESET BAR -->
+<div id="emg-bar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#111827;padding:7px 14px;display:flex;align-items:center;justify-content:space-between">
+  <span style="color:rgba(255,255,255,.5);font-size:11px">Cash Ledger</span>
+  <button ontouchstart="emergencyReset()" onclick="emergencyReset()" style="background:#DC2626;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">⚠️ Reset App</button>
+</div>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pin-screen" style="padding-top:50px">
+  <div class="pin-logo">Cash<em>Ledger</em></div>
+  <div class="pin-sub" id="pin-sub">Enter your 4-digit PIN</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div><div class="pd" id="pd2"></div><div class="pd" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pk" ontouchstart="pinKey('1')" onclick="pinKey('1')">1</button>
+    <button class="pk" ontouchstart="pinKey('2')" onclick="pinKey('2')">2</button>
+    <button class="pk" ontouchstart="pinKey('3')" onclick="pinKey('3')">3</button>
+    <button class="pk" ontouchstart="pinKey('4')" onclick="pinKey('4')">4</button>
+    <button class="pk" ontouchstart="pinKey('5')" onclick="pinKey('5')">5</button>
+    <button class="pk" ontouchstart="pinKey('6')" onclick="pinKey('6')">6</button>
+    <button class="pk" ontouchstart="pinKey('7')" onclick="pinKey('7')">7</button>
+    <button class="pk" ontouchstart="pinKey('8')" onclick="pinKey('8')">8</button>
+    <button class="pk" ontouchstart="pinKey('9')" onclick="pinKey('9')">9</button>
+    <button class="pk" style="background:none"></button>
+    <button class="pk" ontouchstart="pinKey('0')" onclick="pinKey('0')">0</button>
+    <button class="pk" ontouchstart="pinDel()" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-err" id="pin-err"></div>
+  <button class="pin-rst" ontouchstart="emergencyReset()" onclick="emergencyReset()">🔓 Forgot PIN? Reset App</button>
+</div>
+
+<!-- AUTH SCREEN -->
+<div class="auth-wrap" id="auth-wrap" style="display:none">
+  <div class="auth-logo">Cash<em>Ledger</em></div>
+  <div class="auth-tag">Smart Business Finance — Secure &amp; Simple</div>
+  <div class="auth-card">
+    <div style="background:var(--blue-l);border-radius:var(--rxs);padding:8px 12px;margin-bottom:14px;font-size:11px;color:var(--blue);font-weight:600">💳 Subscription Required to Access</div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" id="tab-l" onclick="authTab('l')">Login</button>
+      <button class="auth-tab" id="tab-r" onclick="authTab('r')">Register</button>
+    </div>
+    <div id="af-l">
+      <input class="auth-in" id="l-email" type="email" placeholder="Email or Phone" autocomplete="email">
+      <input class="auth-in" id="l-pass" type="password" placeholder="Password" autocomplete="current-password">
+      <button class="auth-btn" ontouchstart="doLogin()" onclick="doLogin()">Login to Cash Ledger</button>
+      <div class="auth-note">Only registered &amp; approved users can access.<br>Contact admin to subscribe.</div>
+    </div>
+    <div id="af-r" style="display:none">
+      <input class="auth-in" id="r-name" type="text" placeholder="Full Name" autocomplete="name">
+      <input class="auth-in" id="r-email" type="email" placeholder="Email Address" autocomplete="email">
+      <input class="auth-in" id="r-phone" type="tel" placeholder="Phone (+971...)" autocomplete="tel">
+      <input class="auth-in" id="r-pass" type="password" placeholder="Create Password" autocomplete="new-password">
+      <button class="auth-btn" ontouchstart="doRegister()" onclick="doRegister()">Request Access</button>
+      <div class="auth-note">Activated after admin confirms subscription payment.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="main-app" style="display:none">
+
+  <!-- HOME -->
+  <div class="pg base" id="pg-home">
+    <div class="tb">
+      <div class="logo">Cash<em>Ledger</em></div>
+      <div class="tb-r">
+        <div class="cur-badge" id="cur-badge" onclick="openPage('pg-currency')">AED</div>
+        <div class="biz-btn" onclick="showBizModal()">🏢 <span id="biz-name">Business</span> ▾</div>
+      </div>
+    </div>
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:130px">
+      <div class="bal-card">
+        <div class="bal-lbl">Net Balance</div>
+        <div class="bal-amt" id="bal-amt">AED 0.00</div>
+        <div class="bal-row">
+          <div class="bal-col"><div class="bal-col-l">Income</div><div class="bal-col-v col-g" id="h-inc">0.00</div></div>
+          <div class="bal-col"><div class="bal-col-l">Expense</div><div class="bal-col-v col-r" id="h-exp">0.00</div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;padding:4px 12px 2px;overflow-x:auto">
+        <div style="background:var(--purple-l);color:var(--purple);padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;touch-action:manipulation" onclick="openPage('pg-accounts')">🏦 Accounts</div>
+        <div style="background:var(--teal-l);color:var(--teal);padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;touch-action:manipulation" onclick="openPage('pg-invoices')">🧾 Invoices</div>
+        <div style="background:var(--orange-l);color:var(--orange);padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;touch-action:manipulation" onclick="openPage('pg-payables')">📋 Bills</div>
+        <div style="background:var(--amber-l);color:var(--amber);padding:6px 13px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;touch-action:manipulation" onclick="openPage('pg-budget')">🎯 Budget</div>
+      </div>
+      <div class="chips" id="filter-chips">
+        <div class="chip on" onclick="setFilter(this,'all')">All Time</div>
+        <div class="chip" onclick="setFilter(this,'today')">Today</div>
+        <div class="chip" onclick="setFilter(this,'week')">This Week</div>
+        <div class="chip" onclick="setFilter(this,'month')">This Month</div>
+      </div>
+      <div class="srch"><input type="text" placeholder="🔍  Search transactions..." id="srch-in" oninput="setSearch(this.value)" autocomplete="off"></div>
+      <div class="tx-list" id="tx-list"></div>
+    </div>
+    <div class="fabs">
+      <button class="fab fi" ontouchstart="openAdd('income')" onclick="openAdd('income')">＋ Income</button>
+      <button class="fab fm" ontouchstart="openAdd('transfer')" onclick="openAdd('transfer')">⇄</button>
+      <button class="fab fe" ontouchstart="openAdd('expense')" onclick="openAdd('expense')">− Expense</button>
+    </div>
+  </div>
+
+  <!-- ADD ENTRY -->
+  <div class="pg" id="pg-add">
+    <div class="tb">
+      <button class="tb-back" ontouchstart="closePage()" onclick="closePage()">←</button>
+      <div class="tb-title" id="add-title">Add Entry</div>
+      <div style="width:38px"></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px">
+      <div class="form-body">
+        <div class="type-tog">
+          <button class="tt i" id="tt-i" ontouchstart="setType('income')" onclick="setType('income')">＋ Income</button>
+          <button class="tt e" id="tt-e" ontouchstart="setType('expense')" onclick="setType('expense')">− Expense</button>
+          <button class="tt t" id="tt-t" ontouchstart="setType('transfer')" onclick="setType('transfer')">⇄ Transfer</button>
+          <button class="tt j" id="tt-j" ontouchstart="setType('journal')" onclick="setType('journal')">📓 Journal</button>
+        </div>
+        <div class="amt-box">
+          <span class="amt-sym" id="f-sym">AED</span>
+          <input type="number" class="amt-in" id="f-amt" placeholder="0.00" inputmode="decimal" step="0.01" min="0" autocomplete="off">
+        </div>
+        <div class="fld"><label>Description *</label><input type="text" id="f-desc" placeholder="e.g. Payment from client" autocomplete="off"></div>
+        <div class="fld" id="f-acct-wrap">
+          <label id="f-acct-lbl">Account</label>
+          <select id="f-acct"></select>
+        </div>
+        <div class="fld" id="f-acct2-wrap" style="display:none">
+          <label>Transfer To Account</label>
+          <select id="f-acct2"></select>
+        </div>
+        <div class="fld">
+          <label>Category</label>
+          <div class="cat-grid" id="cat-grid"></div>
+          <button class="add-cat-btn" ontouchstart="addCategoryPrompt()" onclick="addCategoryPrompt()">＋ Add Custom Category</button>
+        </div>
+        <div class="fld"><label>Date</label><input type="date" id="f-date" autocomplete="off"></div>
+        <div class="fld"><label>Reference / Invoice No.</label><input type="text" id="f-ref" placeholder="Optional" autocomplete="off"></div>
+        <div class="fld"><label>Note</label><textarea id="f-note" rows="2" placeholder="Additional details..." autocomplete="off"></textarea></div>
+        <div class="fld">
+          <label>Recurring</label>
+          <select id="f-recur">
+            <option value="none">One-time</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Tax / VAT</label>
+          <select id="f-tax" onchange="document.getElementById('f-tax-cust-w').style.display=this.value==='custom'?'block':'none'">
+            <option value="0">No Tax</option>
+            <option value="5">5% VAT (UAE)</option>
+            <option value="15">15% VAT (Saudi)</option>
+            <option value="20">20% VAT (UK)</option>
+            <option value="18">18% GST (India)</option>
+            <option value="custom">Custom %</option>
+          </select>
+        </div>
+        <div class="fld" id="f-tax-cust-w" style="display:none">
+          <label>Custom Tax %</label>
+          <input type="number" id="f-tax-cust" placeholder="e.g. 15" min="0" max="100" step="0.1" inputmode="decimal" autocomplete="off">
+        </div>
+        <button class="save-btn i" id="save-btn" ontouchstart="saveEntry()" onclick="saveEntry()">Save Income</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="pg" id="pg-reports">
+    <div class="tb">
+      <div class="logo">Cash<em>Ledger</em></div>
+      <div class="tb-title" style="color:var(--text2)">Reports</div>
+    </div>
+    <div class="pg-body" id="pg-reports-body">
+      <div class="stat-grid">
+        <div class="sbox"><div class="sl">Income</div><div class="sv" style="color:var(--green)" id="r-inc">0.00</div></div>
+        <div class="sbox"><div class="sl">Expense</div><div class="sv" style="color:var(--red)" id="r-exp">0.00</div></div>
+        <div class="sbox"><div class="sl">Net Profit</div><div class="sv" id="r-net">0.00</div></div>
+        <div class="sbox"><div class="sl">Transactions</div><div class="sv" id="r-cnt">0</div></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h3>6-Month Overview</h3>
+        <div class="bar-wrap" id="bar-wrap"></div>
+        <div style="display:flex;gap:12px;margin-top:7px;font-size:10px;color:var(--text3)">
+          <span><span style="display:inline-block;width:9px;height:9px;background:var(--green);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Income</span>
+          <span><span style="display:inline-block;width:9px;height:9px;background:var(--red);border-radius:2px;margin-right:3px;vertical-align:middle"></span>Expense</span>
+        </div>
+      </div>
+      <div class="ai-box">
+        <div class="ai-title">✨ Smart Insight</div>
+        <div class="ai-txt" id="ai-txt">Add transactions to see smart insights.</div>
+      </div>
+      <div class="card">
+        <h3>Top Categories</h3>
+        <div id="cat-bkdn" style="font-size:12px;color:var(--text3)">No data yet.</div>
+      </div>
+      <div class="sec-hd" style="padding-top:12px">Export &amp; Download</div>
+      <div class="exp-btns">
+        <button class="exp-btn" onclick="exportCSV()">📊 CSV / Excel</button>
+        <button class="exp-btn pdf" onclick="exportPDF()">🖨️ PDF Report</button>
+        <button class="exp-btn" onclick="exportTxt()">📄 Text Report</button>
+        <button class="exp-btn pl" onclick="openPage('pg-pl')">📈 P&amp;L</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- P&L -->
+  <div class="pg" id="pg-pl">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Profit &amp; Loss</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body" id="pl-body"></div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div class="pg" id="pg-accounts">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Chart of Accounts</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body">
+      <div class="sec-hd">Accounts</div>
+      <div style="padding:0 12px" id="acct-list"></div>
+      <div style="padding:0 12px 10px;display:flex;gap:8px">
+        <button onclick="addAccount()" style="flex:1;padding:12px;border-radius:var(--rs);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">＋ Add Account</button>
+        <button onclick="setOpeningBalance()" style="flex:1;padding:12px;border-radius:var(--rs);background:var(--green);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">💰 Opening Balance</button>
+      </div>
+      <div class="sec-hd">Transaction Ledger</div>
+      <div style="padding:0 12px" id="acct-ledger"></div>
+    </div>
+  </div>
+
+  <!-- INVOICES -->
+  <div class="pg" id="pg-invoices">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Invoices</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body">
+      <div class="sec-hd">Outstanding Invoices</div>
+      <div style="padding:0 12px" id="inv-list"></div>
+      <div style="padding:0 12px 10px">
+        <button onclick="addInvoice()" style="width:100%;padding:12px;border-radius:var(--rs);background:var(--teal);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">＋ Create Invoice</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BILLS / PAYABLES -->
+  <div class="pg" id="pg-payables">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Bills &amp; Payables</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body">
+      <div class="sec-hd">Pending Bills</div>
+      <div style="padding:0 12px" id="pay-list"></div>
+      <div style="padding:0 12px 10px">
+        <button onclick="addPayable()" style="width:100%;padding:12px;border-radius:var(--rs);background:var(--orange);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">＋ Add Bill</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUDGET -->
+  <div class="pg" id="pg-budget">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Budget Tracker</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body">
+      <div class="sec-hd">Monthly Budgets</div>
+      <div style="padding:0 12px" id="budget-list"></div>
+      <div style="padding:0 12px 10px">
+        <button onclick="addBudget()" style="width:100%;padding:12px;border-radius:var(--rs);background:var(--amber);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">＋ Set Category Budget</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM -->
+  <div class="pg" id="pg-team">
+    <div class="tb">
+      <div class="logo">Cash<em>Ledger</em></div>
+      <div class="tb-title" style="color:var(--text2)">Team</div>
+    </div>
+    <div class="pg-body">
+      <div class="sec-hd">Team Members</div>
+      <div id="mem-list"></div>
+      <div style="padding:0 12px 12px"><button onclick="addMember()" style="width:100%;padding:12px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">＋ Add Member</button></div>
+      <div style="margin:0 12px;padding:12px 14px;background:var(--blue-l);border-radius:var(--rs);border:1px solid #BFDBFE;font-size:11px;color:#1E40AF;line-height:1.8">
+        <b style="display:block;margin-bottom:4px;color:var(--blue)">Role Permissions</b>
+        🟢 <b>Primary Admin</b> — Full access<br>🔵 <b>Admin</b> — Add/edit entries<br>🟣 <b>Employee</b> — View only
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="pg" id="pg-settings">
+    <div class="tb">
+      <div class="logo">Cash<em>Ledger</em></div>
+      <div class="tb-title" style="color:var(--text2)">Settings</div>
+    </div>
+    <div class="pg-body">
+      <div class="sec-hd">Account</div>
+      <div class="sett-row"><div class="sett-ico">👤</div><div class="sett-body"><div class="sett-title" id="s-uname">User</div><div class="sett-sub" id="s-uemail">—</div></div></div>
+      <div class="sett-row" onclick="showSubModal()"><div class="sett-ico">💳</div><div class="sett-body"><div class="sett-title">Subscription</div><div class="sett-sub" id="s-sub">Active</div></div><div class="sett-arr">›</div></div>
+      <div class="sec-hd">Preferences</div>
+      <div class="sett-row" onclick="openPage('pg-currency')"><div class="sett-ico">💱</div><div class="sett-body"><div class="sett-title">Currency</div><div class="sett-sub" id="s-cur">AED — UAE Dirham</div></div><div class="sett-arr">›</div></div>
+      <div class="sett-row" onclick="showBizModal()"><div class="sett-ico">🏢</div><div class="sett-body"><div class="sett-title">Businesses</div><div class="sett-sub" id="s-biz">1 business</div></div><div class="sett-arr">›</div></div>
+      <div class="sett-row" onclick="openPage('pg-categories')"><div class="sett-ico">🏷️</div><div class="sett-body"><div class="sett-title">Manage Categories</div><div class="sett-sub">Add, edit or delete categories</div></div><div class="sett-arr">›</div></div>
+      <div class="sett-row" onclick="openPage('pg-accounts')"><div class="sett-ico">🏦</div><div class="sett-body"><div class="sett-title">Accounts &amp; Opening Balance</div><div class="sett-sub">Set opening cash/bank balances</div></div><div class="sett-arr">›</div></div>
+      <div class="sett-row"><div class="sett-ico">🔔</div><div class="sett-body"><div class="sett-title">Notifications</div><div class="sett-sub">Daily summary reminders</div></div><div class="toggle" id="tog-notif" onclick="this.classList.toggle('on')"><div class="toggle-k"></div></div></div>
+      <div class="sec-hd">Security</div>
+      <div class="sett-row" onclick="changePIN()"><div class="sett-ico">🔐</div><div class="sett-body"><div class="sett-title">Change PIN</div><div class="sett-sub">Update your 4-digit lock PIN</div></div><div class="sett-arr">›</div></div>
+      <div class="sec-hd">Admin</div>
+      <div class="sett-row" id="admin-row" style="display:none" onclick="showAdminPanel()"><div class="sett-ico">🛡️</div><div class="sett-body"><div class="sett-title" style="color:var(--blue)">Admin Control Panel</div><div class="sett-sub">Manage users &amp; subscriptions</div></div><div class="sett-arr">›</div></div>
+      <div class="sec-hd">Help</div>
+      <div class="sett-row" onclick="openPage('pg-guide')"><div class="sett-ico">📖</div><div class="sett-body"><div class="sett-title">How to Use Guide</div><div class="sett-sub">Step-by-step instructions</div></div><div class="sett-arr">›</div></div>
+      <div class="sett-row"><div class="sett-ico">ℹ️</div><div class="sett-body"><div class="sett-title">Cash Ledger v2.0</div><div class="sett-sub">Full Accounting Edition</div></div></div>
+      <div style="padding:16px 12px">
+        <button onclick="doLogout()" style="width:100%;padding:13px;border-radius:var(--rs);font-size:14px;font-weight:700;border:1px solid #FECACA;background:var(--red-l);color:var(--red);cursor:pointer;font-family:inherit;touch-action:manipulation">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="pg" id="pg-categories">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Categories</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body" id="cats-body"></div>
+  </div>
+
+  <!-- CURRENCY -->
+  <div class="pg" id="pg-currency">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">Currency</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body">
+      <div style="padding:12px 14px 0;font-size:12px;color:var(--text2)">Select your primary currency</div>
+      <div class="cur-grid" id="cur-grid"></div>
+    </div>
+  </div>
+
+  <!-- GUIDE -->
+  <div class="pg" id="pg-guide">
+    <div class="tb">
+      <button class="tb-back" onclick="closePage()">←</button>
+      <div class="tb-title">How to Use</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="pg-body" style="padding:12px 14px 20px" id="guide-body"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bnav">
+    <button class="ni on" id="ni-home" onclick="navTo('pg-home',this)"><span class="ni-ic">🏠</span>Home</button>
+    <button class="ni" id="ni-reports" onclick="navTo('pg-reports',this)"><span class="ni-ic">📊</span>Reports</button>
+    <button class="ni" id="ni-team" onclick="navTo('pg-team',this)"><span class="ni-ic">👥</span>Team</button>
+    <button class="ni" id="ni-settings" onclick="navTo('pg-settings',this)"><span class="ni-ic">⚙️</span>Settings</button>
+  </div>
+</div>
+
+<div class="toast" id="toast-el"></div>
+
+<script>
+// ============================================================
+// CHANGE THESE TO YOUR OWN BEFORE SHARING
+const ADMIN_EMAIL = 'foreverercompany@gmail.com';
+const ADMIN_PASS  = 'Admin@CL2024!99';
+// ============================================================
+
+const CURR={
+  AED:{s:'AED',n:'UAE Dirham',f:'🇦🇪',c:'UAE'},
+  PKR:{s:'PKR',n:'Pakistani Rupee',f:'🇵🇰',c:'Pakistan'},
+  USD:{s:'USD',n:'US Dollar',f:'🇺🇸',c:'United States'},
+  EUR:{s:'EUR',n:'Euro',f:'🇪🇺',c:'Europe'},
+  GBP:{s:'GBP',n:'British Pound',f:'🇬🇧',c:'United Kingdom'},
+  SAR:{s:'SAR',n:'Saudi Riyal',f:'🇸🇦',c:'Saudi Arabia'},
+  INR:{s:'INR',n:'Indian Rupee',f:'🇮🇳',c:'India'},
+  CAD:{s:'CAD',n:'Canadian Dollar',f:'🇨🇦',c:'Canada'},
+  OMR:{s:'OMR',n:'Omani Rial',f:'🇴🇲',c:'Oman'},
+  QAR:{s:'QAR',n:'Qatari Riyal',f:'🇶🇦',c:'Qatar'},
+};
+
+const DEF_CATS={
+  income:['Sales','Client Payment','Commission','Rent Income','Investment','Loan Received','Salary','Freelance','Bonus','Refund','Opening Balance','Other Income'],
+  expense:['Fuel','Staff Salaries','Office Rent','Utilities','Supplies','Transport','Marketing','Maintenance','Food','Bank Charges','Loan Repayment','Insurance','Software','Stationery','Repairs','Other Expense'],
+  transfer:['Bank Transfer','Cash Withdrawal','Cash Deposit','Internal Transfer'],
+  journal:['Adjustment','Depreciation','Accrual','Prepayment','Correction','Opening Balance'],
+};
+
+const COLORS=['#1A56DB','#047857','#B91C1C','#D97706','#5B21B6','#0F766E','#C2410C','#BE185D','#065F46'];
+
+// ---- STORAGE ----
+function getStore(){
+  try{localStorage.setItem('_t','1');localStorage.removeItem('_t');return localStorage;}catch{}
+  try{sessionStorage.setItem('_t','1');sessionStorage.removeItem('_t');return sessionStorage;}catch{}
+  return null;
+}
+const STORE=getStore();
+let _mem=null;
+function load(){
+  try{
+    const raw=STORE?STORE.getItem('cl3'):(_mem?JSON.stringify(_mem):null);
+    return raw?JSON.parse(raw):null;
+  }catch{return null;}
+}
+function save(){
+  try{
+    const d=JSON.stringify(S);
+    if(STORE)STORE.setItem('cl3',d);
+    else _mem=JSON.parse(d);
+  }catch{}
+}
+
+// ---- STATE ----
+const DEF_STATE={
+  txs:[],pin:null,loggedIn:false,curUser:null,
+  currency:'AED',curBiz:'My Business',
+  businesses:['My Business'],
+  team:[],
+  users:[{id:'admin',name:'Admin',email:ADMIN_EMAIL,phone:'',pass:ADMIN_PASS,role:'owner',status:'active',joinDate:new Date().toISOString().split('T')[0],sub:'lifetime'}],
+  accounts:[
+    {id:'cash',name:'Cash in Hand',type:'cash',balance:0},
+    {id:'bank',name:'Bank Account',type:'bank',balance:0},
+  ],
+  categories:JSON.parse(JSON.stringify(DEF_CATS)),
+  invoices:[],payables:[],budgets:[],
+  filter:'all',searchQ:'',
+};
+
+// EMERGENCY RESET
+function emergencyReset(){
+  if(!confirm('RESET CASH LEDGER\n\nThis clears your PIN and all data in this browser.\nYou will start fresh.\n\nContinue?'))return;
+  try{localStorage.clear();}catch{}
+  try{sessionStorage.clear();}catch{}
+  _mem=null;
+  window.location.href=window.location.pathname+'?cl_reset=1';
+}
+if(location.search.includes('cl_reset')){
+  try{localStorage.clear();}catch{}
+  try{sessionStorage.clear();}catch{}
+  history.replaceState(null,'',location.pathname);
+}
+
+let S=load()||JSON.parse(JSON.stringify(DEF_STATE));
+if(!S.users||!S.users.length)S.users=JSON.parse(JSON.stringify(DEF_STATE.users));
+if(!S.businesses)S.businesses=['My Business'];
+if(!S.accounts)S.accounts=JSON.parse(JSON.stringify(DEF_STATE.accounts));
+if(!S.categories)S.categories=JSON.parse(JSON.stringify(DEF_CATS));
+if(!S.invoices)S.invoices=[];
+if(!S.payables)S.payables=[];
+if(!S.budgets)S.budgets=[];
+// always patch owner credentials
+const _ow=S.users.find(u=>u.role==='owner');
+if(_ow){_ow.email=ADMIN_EMAIL;_ow.pass=ADMIN_PASS;}
+
+// ---- PIN ----
+let _pe='',_ps=S.pin?'verify':'set1',_pt='';
+let _pinLock=false;
+
+function initPin(){
+  document.getElementById('pin-sub').textContent=S.pin?'Enter your 4-digit PIN':'Create a 4-digit PIN to secure your app';
+  document.getElementById('pin-err').textContent='';
+  _pe='';_ps=S.pin?'verify':'set1';_pt='';
+  updDots();
+}
+function pinKey(k){
+  if(_pinLock||!k||_pe.length>=4)return;
+  _pinLock=true;setTimeout(()=>_pinLock=false,300);
+  _pe+=k;updDots();
+  if(_pe.length===4)setTimeout(pinSubmit,150);
+}
+function pinDel(){
+  if(_pinLock)return;_pinLock=true;setTimeout(()=>_pinLock=false,200);
+  _pe=_pe.slice(0,-1);updDots();
+}
+function updDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('f',i<_pe.length);}
+function pinSubmit(){
+  const err=document.getElementById('pin-err');
+  if(_ps==='set1'){
+    _pt=_pe;_pe='';_ps='set2';
+    document.getElementById('pin-sub').textContent='Confirm your PIN — enter it again';
+    err.textContent='';updDots();
+  } else if(_ps==='set2'){
+    if(_pe===_pt){
+      S.pin=_pe;_pe='';save();
+      document.getElementById('pin-screen').style.display='none';
+      showAuthOrApp();
+    } else {
+      err.textContent='PINs do not match. Try again.';
+      _pe='';_ps='set1';_pt='';
+      document.getElementById('pin-sub').textContent='Create a 4-digit PIN';
+      updDots();
+    }
+  } else {
+    if(_pe===S.pin){
+      document.getElementById('pin-screen').style.display='none';
+      showAuthOrApp();
+    } else {
+      err.textContent='Incorrect PIN. Try again.';
+      _pe='';updDots();
+    }
+  }
+}
+function changePIN(){
+  S.pin=null;save();
+  _pe='';_ps='set1';_pt='';
+  document.getElementById('pin-sub').textContent='Create a new 4-digit PIN';
+  document.getElementById('pin-err').textContent='';
+  updDots();
+  document.getElementById('pin-screen').style.display='flex';
+}
+
+// ---- AUTH ----
+function showAuthOrApp(){
+  if(S.loggedIn&&S.curUser)showApp();
+  else document.getElementById('auth-wrap').style.display='flex';
+}
+function authTab(t){
+  document.getElementById('tab-l').classList.toggle('on',t==='l');
+  document.getElementById('tab-r').classList.toggle('on',t==='r');
+  document.getElementById('af-l').style.display=t==='l'?'block':'none';
+  document.getElementById('af-r').style.display=t==='r'?'block':'none';
+}
+function doLogin(){
+  const em=document.getElementById('l-email').value.trim();
+  const pw=document.getElementById('l-pass').value;
+  if(!em||!pw)return toast('Enter email and password');
+  const u=S.users.find(x=>(x.email===em||x.phone===em)&&x.pass===pw);
+  if(!u)return toast('❌ Invalid email or password');
+  if(u.status==='pending')return toast('⏳ Account pending approval');
+  if(u.status==='blocked')return toast('🚫 Account suspended');
+  S.loggedIn=true;S.curUser=u.id;save();
+  document.getElementById('auth-wrap').style.display='none';
+  showApp();toast('Welcome back, '+u.name.split(' ')[0]+'!');
+}
+function doRegister(){
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim();
+  const phone=document.getElementById('r-phone').value.trim();
+  const pass=document.getElementById('r-pass').value;
+  if(!name||(!email&&!phone)||!pass)return toast('Fill all required fields');
+  if(email&&S.users.find(u=>u.email===email))return toast('Email already registered');
+  S.users.push({id:'u'+Date.now(),name,email,phone,pass,role:'user',status:'pending',joinDate:new Date().toISOString().split('T')[0],sub:'none'});
+  save();toast('✅ Request sent! Admin will activate after payment.');
+  authTab('l');
+}
+function doLogout(){
+  S.loggedIn=false;S.curUser=null;save();
+  document.getElementById('main-app').style.display='none';
+  _pe='';_ps='verify';updDots();
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-screen').style.display='flex';
+}
+function curUser(){return S.users.find(u=>u.id===S.curUser)||null;}
+function isOwner(){const u=curUser();return u&&u.role==='owner';}
+
+function showApp(){
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('emg-bar').style.display='none';
+  const u=curUser();
+  if(u){
+    document.getElementById('s-uname').textContent=u.name;
+    document.getElementById('s-uemail').textContent=u.email||u.phone||'';
+    if(isOwner())document.getElementById('admin-row').style.display='flex';
+  }
+  if(!S.team.length&&u)S.team=[{name:u.name,role:'Primary Admin',color:COLORS[0]}];
+  refreshHome();
+  refreshTeam();
+  renderGuide();
+  renderCurGrid();
+  renderCatsPage();
+  document.getElementById('biz-name').textContent=S.curBiz;
+  document.getElementById('cur-badge').textContent=S.currency;
+  document.getElementById('s-cur').textContent=S.currency+' — '+(CURR[S.currency]?.n||S.currency);
+  document.getElementById('s-biz').textContent=S.businesses.length+' business'+(S.businesses.length>1?'es':'');
+}
+
+// ---- NAVIGATION ----
+let pageStack=[];
+function openPage(id){
+  const cur=document.querySelector('.pg.active');
+  if(cur)cur.classList.remove('active');
+  const pg=document.getElementById(id);
+  if(pg){pg.classList.add('active');pageStack.push(id);}
+  if(id==='pg-reports')setTimeout(refreshReports,30);
+  if(id==='pg-accounts')setTimeout(refreshAccounts,30);
+  if(id==='pg-invoices')setTimeout(refreshInvoices,30);
+  if(id==='pg-payables')setTimeout(refreshPayables,30);
+  if(id==='pg-budget')setTimeout(refreshBudget,30);
+  if(id==='pg-pl')setTimeout(renderPL,30);
+  if(id==='pg-categories')setTimeout(renderCatsPage,30);
+}
+function closePage(){
+  const cur=document.querySelector('.pg.active');
+  if(cur)cur.classList.remove('active');
+  pageStack.pop();
+  const prev=pageStack.length?pageStack[pageStack.length-1]:null;
+  if(prev)document.getElementById(prev)?.classList.add('active');
+  else document.querySelector('.pg.base')?.classList.add('active');
+}
+function navTo(id,el){
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  if(el)el.classList.add('on');
+  document.querySelectorAll('.pg.active').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.pg.base').forEach(p=>p.classList.remove('base'));
+  const pg=document.getElementById(id);
+  if(pg){pg.classList.add('active');pg.classList.add('base');}
+  pageStack=[];
+  if(id==='pg-reports')setTimeout(refreshReports,30);
+  if(id==='pg-team')setTimeout(refreshTeam,30);
+}
+
+// ---- HELPERS ----
+function sym(){return S.currency+' ';}
+function fmt(n){return Number(n||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function ff(n){return sym()+fmt(n);}
+function fmtDate(ds){
+  const d=new Date(ds),t=new Date(),y=new Date();
+  y.setDate(y.getDate()-1);
+  if(d.toDateString()===t.toDateString())return'Today';
+  if(d.toDateString()===y.toDateString())return'Yesterday';
+  return d.toLocaleDateString('en',{day:'numeric',month:'short',year:'numeric'});
+}
+let _toastT;
+function toast(msg){
+  const el=document.getElementById('toast-el');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(_toastT);_toastT=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ---- HOME & FILTERS ----
+function setFilter(el,val){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');S.filter=val;S.searchQ='';
+  document.getElementById('srch-in').value='';
+  refreshHome();
+}
+function setSearch(q){S.searchQ=q.toLowerCase();refreshHome();}
+function getFiltered(){
+  const now=new Date(),f=S.filter,q=S.searchQ||'';
+  return S.txs.filter(t=>{
+    if(t.biz&&t.biz!==S.curBiz)return false;
+    if(q&&!(t.desc||'').toLowerCase().includes(q)&&!(t.cat||'').toLowerCase().includes(q))return false;
+    const d=new Date(t.date);
+    if(f==='today')return d.toDateString()===now.toDateString();
+    if(f==='week'){const w=new Date(now);w.setDate(w.getDate()-7);return d>=w;}
+    if(f==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    return true;
+  });
+}
+function refreshHome(){
+  const txs=getFiltered();
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const balEl=document.getElementById('bal-amt');
+  if(balEl)balEl.textContent=ff(inc-exp);
+  const incEl=document.getElementById('h-inc');if(incEl)incEl.textContent=fmt(inc);
+  const expEl=document.getElementById('h-exp');if(expEl)expEl.textContent=fmt(exp);
+  renderTxList(txs);
+}
+const TX_ICO={income:'⬆',expense:'⬇',transfer:'⇄',journal:'📓'};
+const TX_CLS={income:'i',expense:'e',transfer:'t',journal:'j'};
+function renderTxList(txs){
+  const el=document.getElementById('tx-list');if(!el)return;
+  if(!txs.length){
+    el.innerHTML='<div class="empty"><div class="empty-ic">📒</div><div>No transactions found.<br>Tap + Income or − Expense to start.</div></div>';
+    return;
+  }
+  const grp={};txs.forEach(t=>(grp[t.date]=grp[t.date]||[]).push(t));
+  el.innerHTML=Object.entries(grp).sort((a,b)=>b[0]<a[0]?-1:1).map(([dt,items])=>
+    '<div class="tx-dh">'+fmtDate(dt)+'</div>'+
+    items.map(t=>{
+      const cls=TX_CLS[t.type]||'e';
+      const ico=TX_ICO[t.type]||'⬇';
+      const sign=t.type==='income'?'+':t.type==='transfer'?'':'−';
+      const taxLine=t.taxAmt>0?'<div style="font-size:9px;opacity:.7">+tax '+sym()+fmt(t.taxAmt)+'</div>':'';
+      const recur=t.recurring&&t.recurring!=='none'?' 🔄':'';
+      return '<div class="tx-row" onclick="showReceipt('+t.id+')">'+
+        '<div class="tx-ico '+cls+'">'+ico+'</div>'+
+        '<div class="tx-body"><div class="tx-desc">'+t.desc+recur+'</div>'+
+        '<div class="tx-sub">'+(t.cat||'')+(t.ref?' · '+t.ref:'')+'</div></div>'+
+        '<div class="tx-amt '+cls+'">'+sign+sym()+fmt(t.amount)+taxLine+'</div></div>';
+    }).join('')
+  ).join('');
+}
+
+// ---- ADD ENTRY ----
+let _editId=null;
+function openAdd(type){
+  _editId=null;
+  document.getElementById('add-title').textContent='Add Entry';
+  initForm(type||'income');
+  openPage('pg-add');
+}
+function initForm(type){
+  S._type=type||'income';
+  ['i','e','t','j'].forEach(x=>{const el=document.getElementById('tt-'+x);if(el)el.classList.remove('on');});
+  const map={income:'i',expense:'e',transfer:'t',journal:'j'};
+  const btn=document.getElementById('tt-'+(map[type]||'i'));
+  if(btn)btn.classList.add('on');
+  const fields=['f-amt','f-desc','f-ref','f-note'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const dateEl=document.getElementById('f-date');
+  if(dateEl)dateEl.value=new Date().toISOString().split('T')[0];
+  const recurEl=document.getElementById('f-recur');if(recurEl)recurEl.value='none';
+  const taxEl=document.getElementById('f-tax');if(taxEl)taxEl.value='0';
+  const taxCW=document.getElementById('f-tax-cust-w');if(taxCW)taxCW.style.display='none';
+  const symEl=document.getElementById('f-sym');if(symEl)symEl.textContent=S.currency;
+  const a2w=document.getElementById('f-acct2-wrap');if(a2w)a2w.style.display=type==='transfer'?'block':'none';
+  const lbl=document.getElementById('f-acct-lbl');
+  if(lbl)lbl.textContent=type==='expense'?'Paid From Account':type==='income'?'Received Into Account':'From Account';
+  renderAcctDropdown();
+  S._selCat='';
+  renderCatGrid(type);
+  const sb=document.getElementById('save-btn');
+  if(sb){
+    const clsMap={income:'i',expense:'e',transfer:'t',journal:'j'};
+    sb.className='save-btn '+(clsMap[type]||'i');
+    sb.textContent=type==='income'?'Save Income':type==='expense'?'Save Expense':type==='transfer'?'Save Transfer':'Save Journal';
+  }
+}
+function setType(type){initForm(type);}
+function renderAcctDropdown(){
+  const opts=S.accounts.map(a=>'<option value="'+a.id+'">'+a.name+' ('+sym()+fmt(a.balance)+')</option>').join('');
+  const a1=document.getElementById('f-acct');if(a1)a1.innerHTML=opts;
+  const a2=document.getElementById('f-acct2');if(a2)a2.innerHTML=opts;
+}
+function renderCatGrid(type){
+  const t=type||S._type||'income';
+  const cats=S.categories[t]||[];
+  const sel=S._selCat||'';
+  const el=document.getElementById('cat-grid');
+  if(!el)return;
+  el.innerHTML=cats.map(c=>'<div class="cc'+(sel===c?' on':'')+'" onclick="selCat(\''+c.replace(/'/g,"\\'")+'\')">'+(c||'')+'</div>').join('');
+}
+function selCat(c){S._selCat=c;renderCatGrid();}
+function addCategoryPrompt(){
+  const name=prompt('New category name:');
+  if(!name||!name.trim())return;
+  const t=S._type||'income';
+  if(!S.categories[t])S.categories[t]=[];
+  if(S.categories[t].includes(name.trim()))return toast('Category already exists');
+  S.categories[t].push(name.trim());
+  save();renderCatGrid(t);toast('✅ Category added!');
+}
+function saveEntry(){
+  const amtEl=document.getElementById('f-amt');
+  const descEl=document.getElementById('f-desc');
+  const amt=parseFloat(amtEl?amtEl.value:0);
+  const desc=descEl?descEl.value.trim():'';
+  if(!amt||amt<=0)return toast('⚠️ Enter a valid amount');
+  if(!desc)return toast('⚠️ Enter a description');
+  const taxSel=document.getElementById('f-tax');
+  const taxVal=taxSel?taxSel.value:'0';
+  const taxPct=taxVal==='custom'?parseFloat(document.getElementById('f-tax-cust')?.value||0):parseFloat(taxVal);
+  const taxAmt=parseFloat((amt*(taxPct/100)).toFixed(2));
+  const acctId=document.getElementById('f-acct')?.value||'cash';
+  const acct2Id=document.getElementById('f-acct2')?.value||'bank';
+  const type=S._type||'income';
+  const tx={
+    id:_editId||Date.now(),type,amount:amt,
+    desc,cat:S._selCat||'',
+    date:document.getElementById('f-date')?.value||new Date().toISOString().split('T')[0],
+    ref:document.getElementById('f-ref')?.value.trim()||'',
+    note:document.getElementById('f-note')?.value.trim()||'',
+    recurring:document.getElementById('f-recur')?.value||'none',
+    taxPct,taxAmt,acctId,acct2Id,
+    biz:S.curBiz,currency:S.currency,addedBy:S.curUser
+  };
+  // Update account balances
+  const acct=S.accounts.find(a=>a.id===acctId);
+  if(acct){
+    if(type==='income')acct.balance+=amt;
+    else if(type==='expense')acct.balance-=amt;
+    else if(type==='transfer'){
+      acct.balance-=amt;
+      const a2=S.accounts.find(a=>a.id===acct2Id);
+      if(a2)a2.balance+=amt;
+    }
+  }
+  if(_editId){S.txs=S.txs.map(t=>t.id===_editId?tx:t);_editId=null;}
+  else S.txs.unshift(tx);
+  S._selCat='';save();
+  toast(type==='income'?'✅ Income saved!':type==='expense'?'✅ Expense saved!':'✅ Saved!');
+  setTimeout(()=>closePage(),400);
+  refreshHome();
+}
+
+// ---- RECEIPT ----
+function showReceipt(id){
+  const t=S.txs.find(x=>x.id===id);if(!t)return;
+  const canEdit=isOwner()||(curUser()&&curUser().role==='admin');
+  const TYPE_LABEL={income:'Income',expense:'Expense',transfer:'Transfer',journal:'Journal'};
+  const COLOR_MAP={income:'var(--green)',expense:'var(--red)',transfer:'var(--blue)',journal:'var(--purple)'};
+  const sign=t.type==='income'?'+':t.type==='expense'?'−':'';
+  const div=document.createElement('div');
+  div.className='modal-bg';
+  div.onclick=function(e){if(e.target===div)div.remove();};
+  let html='<div class="modal" onclick="event.stopPropagation()">';
+  html+='<div class="modal-handle"></div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html+='<div style="font-size:16px;font-weight:800">'+(TYPE_LABEL[t.type]||'Transaction')+'</div>';
+  html+='<button class="modal-close" onclick="this.closest(\'.modal-bg\').remove()">✕</button></div>';
+  html+='<div style="text-align:center;padding:10px 0 16px">';
+  html+='<div style="font-size:28px;font-weight:800;color:'+COLOR_MAP[t.type]+'">'+sign+sym()+fmt(t.amount)+'</div>';
+  if(t.taxAmt>0)html+='<div style="font-size:12px;color:var(--text2)">incl. '+sym()+fmt(t.taxAmt)+' tax ('+t.taxPct+'%)</div>';
+  html+='</div>';
+  html+=rrow('Description',t.desc);
+  html+=rrow('Category',t.cat||'—');
+  html+=rrow('Date',fmtDate(t.date));
+  html+=rrow('Business',t.biz||'—');
+  if(t.ref)html+=rrow('Reference',t.ref);
+  if(t.recurring&&t.recurring!=='none')html+=rrow('Recurring',t.recurring);
+  if(t.note)html+=rrow('Note',t.note);
+  if(canEdit){
+    html+='<button class="modal-btn primary" onclick="editEntry('+t.id+')">✏️ Edit Entry</button>';
+    html+='<button class="modal-btn danger" onclick="deleteTx('+t.id+')">🗑️ Delete Entry</button>';
+  }
+  html+='</div>';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+}
+function rrow(l,v){return '<div class="rcpt-row"><span class="rcpt-lbl">'+l+'</span><span class="rcpt-val">'+v+'</span></div>';}
+function deleteTx(id){
+  if(!confirm('Delete this transaction?'))return;
+  const t=S.txs.find(x=>x.id===id);
+  if(t){
+    const acct=S.accounts.find(a=>a.id===t.acctId);
+    if(acct){
+      if(t.type==='income')acct.balance-=t.amount;
+      else if(t.type==='expense')acct.balance+=t.amount;
+      else if(t.type==='transfer'){
+        acct.balance+=t.amount;
+        const a2=S.accounts.find(a=>a.id===t.acct2Id);
+        if(a2)a2.balance-=t.amount;
+      }
+    }
+  }
+  S.txs=S.txs.filter(x=>x.id!==id);save();
+  document.querySelector('.modal-bg')?.remove();
+  refreshHome();toast('🗑️ Deleted');
+}
+function editEntry(id){
+  document.querySelector('.modal-bg')?.remove();
+  const t=S.txs.find(x=>x.id===id);if(!t)return;
+  _editId=id;
+  document.getElementById('add-title').textContent='Edit Entry';
+  initForm(t.type);
+  setTimeout(()=>{
+    const amtEl=document.getElementById('f-amt');if(amtEl)amtEl.value=t.amount;
+    const descEl=document.getElementById('f-desc');if(descEl)descEl.value=t.desc;
+    const refEl=document.getElementById('f-ref');if(refEl)refEl.value=t.ref||'';
+    const noteEl=document.getElementById('f-note');if(noteEl)noteEl.value=t.note||'';
+    const dateEl=document.getElementById('f-date');if(dateEl)dateEl.value=t.date;
+    const recurEl=document.getElementById('f-recur');if(recurEl)recurEl.value=t.recurring||'none';
+    S._selCat=t.cat;renderCatGrid(t.type);
+  },100);
+  openPage('pg-add');
+}
+
+// ---- REPORTS ----
+function refreshReports(){
+  const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const net=inc-exp;
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setEl('r-inc',ff(inc));
+  setEl('r-exp',ff(exp));
+  setEl('r-cnt',txs.length);
+  const nel=document.getElementById('r-net');
+  if(nel){nel.textContent=ff(net);nel.style.color=net>=0?'var(--green)':'var(--red)';}
+  renderBarChart(txs);
+  renderCatBkdn(txs);
+  // Smart insight
+  const aiEl=document.getElementById('ai-txt');
+  if(aiEl){
+    if(!txs.length){aiEl.textContent='Add transactions to see insights.';return;}
+    const ratio=inc>0?Math.round((exp/inc)*100):0;
+    const topE=topCat(txs.filter(t=>t.type==='expense'));
+    const topI=topCat(txs.filter(t=>t.type==='income'));
+    let msg=ratio>80?'⚠️ Spending '+ratio+'% of income — high.':ratio>50?'📊 Spending '+ratio+'% of income.':'✅ Healthy: '+ratio+'% spent.';
+    if(topE)msg+=' Top expense: '+topE+'.';
+    if(topI)msg+=' Top income: '+topI+'.';
+    msg+=net>=0?' Profit: '+ff(net)+'.':' ⚠️ Loss: '+ff(Math.abs(net))+'.';
+    aiEl.textContent=msg;
+  }
+}
+function topCat(txs){
+  const m={};txs.forEach(t=>m[t.cat||'Other']=(m[t.cat||'Other']||0)+t.amount);
+  return Object.entries(m).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+}
+function renderBarChart(txs){
+  const el=document.getElementById('bar-wrap');if(!el)return;
+  const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now=new Date();
+  const data=Array.from({length:6},(_,i)=>{
+    const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);
+    const m=d.getMonth(),y=d.getFullYear();
+    const mt=txs.filter(t=>{const td=new Date(t.date);return td.getMonth()===m&&td.getFullYear()===y;});
+    return{lbl:mo[m],inc:mt.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),exp:mt.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)};
+  });
+  const mx=Math.max(...data.map(d=>Math.max(d.inc,d.exp)),1);
+  el.innerHTML=data.map(d=>'<div class="bcol">'+
+    '<div style="display:flex;gap:2px;align-items:flex-end;height:70px">'+
+    '<div class="bar" style="width:12px;height:'+Math.max(2,Math.round((d.inc/mx)*70))+'px;background:var(--green)"></div>'+
+    '<div class="bar" style="width:12px;height:'+Math.max(2,Math.round((d.exp/mx)*70))+'px;background:var(--red)"></div>'+
+    '</div><div class="blbl">'+d.lbl+'</div></div>').join('');
+}
+function renderCatBkdn(txs){
+  const el=document.getElementById('cat-bkdn');if(!el)return;
+  const m={};txs.forEach(t=>m[t.cat||'Other']=(m[t.cat||'Other']||0)+t.amount);
+  const sorted=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if(!sorted.length){el.innerHTML='No data yet.';return;}
+  const tot=sorted.reduce((s,e)=>s+e[1],0);
+  el.innerHTML=sorted.map(([cat,amt],i)=>
+    '<div style="margin-bottom:9px">'+
+    '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'+
+    '<span>'+(cat||'Other')+'</span><span style="font-weight:700">'+ff(amt)+'</span></div>'+
+    '<div style="background:var(--bg);border-radius:3px;height:5px">'+
+    '<div style="background:'+COLORS[i%COLORS.length]+';height:5px;border-radius:3px;width:'+Math.max(2,Math.round((amt/tot)*100))+'%"></div>'+
+    '</div></div>'
+  ).join('');
+}
+
+// ---- P&L ----
+function renderPL(){
+  const el=document.getElementById('pl-body');if(!el)return;
+  const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const net=inc-exp;
+  const tax=txs.reduce((s,t)=>s+(t.taxAmt||0),0);
+  const incCats={};txs.filter(t=>t.type==='income').forEach(t=>incCats[t.cat||'Other']=(incCats[t.cat||'Other']||0)+t.amount);
+  const expCats={};txs.filter(t=>t.type==='expense').forEach(t=>expCats[t.cat||'Other']=(expCats[t.cat||'Other']||0)+t.amount);
+  const now=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  let html='<div style="padding:14px 16px 20px">';
+  html+='<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Business: <b>'+S.curBiz+'</b> · '+now+'</div>';
+  html+='<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid var(--border);text-transform:uppercase;letter-spacing:.4px">Income</div>';
+  Object.entries(incCats).forEach(([c,a])=>{
+    html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">'+c+'</span><span style="color:var(--green);font-weight:600">'+ff(a)+'</span></div>';
+  });
+  html+='<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:800;border-top:2px solid var(--border);margin-top:4px"><span>Total Income</span><span style="color:var(--green)">'+ff(inc)+'</span></div>';
+  html+='<div style="font-size:12px;font-weight:800;color:var(--text);margin:14px 0 8px;padding-bottom:5px;border-bottom:2px solid var(--border);text-transform:uppercase;letter-spacing:.4px">Expenses</div>';
+  Object.entries(expCats).forEach(([c,a])=>{
+    html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">'+c+'</span><span style="color:var(--red);font-weight:600">'+ff(a)+'</span></div>';
+  });
+  html+='<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;font-weight:800;border-top:2px solid var(--border);margin-top:4px"><span>Total Expenses</span><span style="color:var(--red)">'+ff(exp)+'</span></div>';
+  if(tax>0)html+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Total Tax Collected</span><span style="font-weight:600">'+ff(tax)+'</span></div>';
+  html+='<div style="background:'+(net>=0?'var(--green-l)':'var(--red-l)')+';border-radius:var(--rs);padding:14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center">';
+  html+='<span style="font-size:14px;font-weight:800">NET '+(net>=0?'PROFIT':'LOSS')+'</span>';
+  html+='<span style="font-size:20px;font-weight:800;color:'+(net>=0?'var(--green)':'var(--red)')+'">'+ff(Math.abs(net))+'</span></div>';
+  html+='<button onclick="exportPDF()" style="width:100%;margin-top:14px;padding:13px;border-radius:var(--rs);background:var(--red);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">🖨️ Export as PDF</button>';
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ---- ACCOUNTS ----
+function refreshAccounts(){
+  const el=document.getElementById('acct-list');if(!el)return;
+  if(!S.accounts.length){el.innerHTML='<div style="padding:14px;color:var(--text3);font-size:13px">No accounts yet.</div>';return;}
+  el.innerHTML=S.accounts.map(a=>{
+    const color=a.balance>=0?'var(--green)':'var(--red)';
+    return '<div class="acct-card" onclick="showAcctDetail(\''+a.id+'\')">' +
+      '<div class="acct-type">'+a.type+'</div>' +
+      '<div class="acct-name">'+a.name+'</div>' +
+      '<div class="acct-bal" style="color:'+color+'">'+ff(a.balance)+'</div>' +
+      '</div>';
+  }).join('');
+  // Ledger
+  const led=document.getElementById('acct-ledger');if(!led)return;
+  const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz).slice(0,30);
+  if(!txs.length){led.innerHTML='<div style="padding:14px;color:var(--text3);font-size:13px">No transactions yet.</div>';return;}
+  let ledHtml='<div style="background:var(--white);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;margin-bottom:20px">';
+  ledHtml+='<div style="display:grid;grid-template-columns:70px 1fr 70px 70px;background:var(--bg);padding:8px 10px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">';
+  ledHtml+='<span>Date</span><span>Description</span><span style="text-align:right">Debit</span><span style="text-align:right">Credit</span></div>';
+  txs.forEach(t=>{
+    ledHtml+='<div style="display:grid;grid-template-columns:70px 1fr 70px 70px;padding:8px 10px;border-top:1px solid var(--border);font-size:11px">';
+    ledHtml+='<span style="color:var(--text3)">'+(t.date||'').slice(5)+'</span>';
+    ledHtml+='<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+t.desc+'</span>';
+    ledHtml+='<span style="text-align:right;color:var(--red);font-weight:600">'+(t.type==='expense'?fmt(t.amount):'')+'</span>';
+    ledHtml+='<span style="text-align:right;color:var(--green);font-weight:600">'+(t.type==='income'?fmt(t.amount):'')+'</span>';
+    ledHtml+='</div>';
+  });
+  ledHtml+='</div>';
+  led.innerHTML=ledHtml;
+}
+function addAccount(){
+  const name=prompt('Account name:\n(e.g. Cash in Hand, Petty Cash, ADCB Bank)');
+  if(!name||!name.trim())return;
+  const typeRaw=(prompt('Account type:\ncash / bank / credit')||'bank').toLowerCase().trim();
+  const type=['cash','bank','credit'].includes(typeRaw)?typeRaw:'bank';
+  const balRaw=prompt('Opening Balance — current amount in this account:\n(Enter 0 if starting fresh)');
+  const bal=parseFloat(balRaw)||0;
+  const acctId='a'+Date.now();
+  S.accounts.push({id:acctId,name:name.trim(),type,balance:bal});
+  if(bal>0){
+    S.txs.push({
+      id:Date.now()+1,type:'income',amount:bal,
+      desc:'Opening Balance — '+name.trim(),
+      cat:'Opening Balance',
+      date:new Date().toISOString().split('T')[0],
+      ref:'OB',note:'Opening balance',
+      recurring:'none',taxPct:0,taxAmt:0,
+      acctId:acctId,biz:S.curBiz,currency:S.currency,addedBy:S.curUser
+    });
+    if(!S.categories.income.includes('Opening Balance'))S.categories.income.push('Opening Balance');
+  }
+  save();refreshAccounts();refreshHome();
+  toast('✅ Account added'+(bal>0?' with '+ff(bal)+' opening balance':'')+'!');
+}
+function setOpeningBalance(){
+  if(!S.accounts.length){toast('Add an account first');return;}
+  const names=S.accounts.map((a,i)=>(i+1)+'. '+a.name+' (current: '+ff(a.balance)+')').join('\n');
+  const idx=parseInt(prompt('Select account:\n'+names))-1;
+  if(isNaN(idx)||idx<0||idx>=S.accounts.length)return;
+  const acct=S.accounts[idx];
+  const bal=parseFloat(prompt('Opening balance for "'+acct.name+'":\nEnter the current amount in this account'));
+  if(isNaN(bal)||bal<0){toast('Invalid amount');return;}
+  // Remove previous opening balance tx for this account
+  S.txs=S.txs.filter(t=>!(t.ref==='OB'&&t.acctId===acct.id));
+  acct.balance=bal;
+  if(bal>0){
+    S.txs.push({
+      id:Date.now(),type:'income',amount:bal,
+      desc:'Opening Balance — '+acct.name,
+      cat:'Opening Balance',
+      date:new Date().toISOString().split('T')[0],
+      ref:'OB',note:'Opening balance',
+      recurring:'none',taxPct:0,taxAmt:0,
+      acctId:acct.id,biz:S.curBiz,currency:S.currency,addedBy:S.curUser
+    });
+    if(!S.categories.income.includes('Opening Balance'))S.categories.income.push('Opening Balance');
+  }
+  save();refreshAccounts();refreshHome();
+  toast('✅ Opening balance set: '+ff(bal)+' for '+acct.name);
+}
+function showAcctDetail(id){
+  const a=S.accounts.find(x=>x.id===id);if(!a)return;
+  const txs=S.txs.filter(t=>t.acctId===id||t.acct2Id===id);
+  const div=document.createElement('div');
+  div.className='modal-bg';
+  div.onclick=e=>{if(e.target===div)div.remove();};
+  let html='<div class="modal" onclick="event.stopPropagation()">';
+  html+='<div class="modal-handle"></div>';
+  html+='<div class="modal-title">'+a.name+'</div>';
+  const bcolor=a.balance>=0?'var(--green)':'var(--red)';
+  html+='<div style="font-size:24px;font-weight:800;color:'+bcolor+';margin-bottom:14px">'+ff(a.balance)+'</div>';
+  html+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Transactions ('+txs.length+')</div>';
+  if(txs.length){
+    txs.slice(0,10).forEach(t=>{
+      const sign=t.type==='income'?'+':'−';
+      const c=t.type==='income'?'var(--green)':'var(--red)';
+      html+='<div class="rcpt-row"><span class="rcpt-lbl">'+t.date+' — '+t.desc+'</span><span class="rcpt-val" style="color:'+c+'">'+sign+fmt(t.amount)+'</span></div>';
+    });
+  } else {
+    html+='<div style="color:var(--text3);font-size:12px">No transactions for this account.</div>';
+  }
+  html+='<button class="modal-btn danger" onclick="deleteAccount(\''+id+'\');this.closest(\'.modal-bg\').remove()">🗑️ Delete Account</button>';
+  html+='</div>';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+}
+function deleteAccount(id){
+  if(!confirm('Delete this account?'))return;
+  S.accounts=S.accounts.filter(a=>a.id!==id);save();refreshAccounts();toast('Account deleted');
+}
+
+// ---- INVOICES ----
+function refreshInvoices(){
+  const el=document.getElementById('inv-list');if(!el)return;
+  if(!S.invoices.length){el.innerHTML='<div style="padding:14px;color:var(--text3);font-size:13px;text-align:center">No invoices yet.</div>';return;}
+  el.innerHTML=S.invoices.map(inv=>{
+    const paid=inv.status==='paid';
+    const c=paid?'var(--green)':'var(--orange)';
+    let html='<div class="inv-row">';
+    html+='<div style="flex:1"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase">Invoice #'+inv.num+'</div>';
+    html+='<div style="font-size:13px;font-weight:600">'+inv.client+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">Due: '+inv.due+'</div></div>';
+    html+='<div style="text-align:right;margin-right:8px"><div style="font-size:15px;font-weight:800;color:'+c+'">'+ff(inv.amount)+'</div>';
+    html+='<div style="font-size:10px;font-weight:700;color:'+c+';text-transform:uppercase">'+inv.status+'</div></div>';
+    if(!paid)html+='<button onclick="markInvPaid(\''+inv.id+'\')" style="padding:7px 11px;border-radius:var(--rxs);background:var(--green-l);color:var(--green);border:1px solid #A7F3D0;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">✓ Paid</button>';
+    html+='</div>';
+    return html;
+  }).join('');
+}
+function addInvoice(){
+  const client=prompt('Client name:');if(!client?.trim())return;
+  const amount=parseFloat(prompt('Invoice amount:'));if(!amount||amount<=0)return toast('Invalid amount');
+  const due=prompt('Due date (YYYY-MM-DD):')||new Date().toISOString().split('T')[0];
+  S.invoices.push({id:'inv'+Date.now(),num:S.invoices.length+1,client:client.trim(),amount,due,status:'unpaid',date:new Date().toISOString().split('T')[0]});
+  save();refreshInvoices();toast('✅ Invoice created!');
+}
+function markInvPaid(id){
+  const inv=S.invoices.find(x=>x.id===id);if(!inv)return;
+  inv.status='paid';
+  S.txs.unshift({id:Date.now(),type:'income',amount:inv.amount,desc:'Invoice #'+inv.num+' — '+inv.client,cat:'Client Payment',date:new Date().toISOString().split('T')[0],biz:S.curBiz,currency:S.currency,taxAmt:0,taxPct:0,ref:'INV#'+inv.num,note:'',recurring:'none',acctId:'bank',acct2Id:''});
+  const acct=S.accounts.find(a=>a.id==='bank');if(acct)acct.balance+=inv.amount;
+  save();refreshInvoices();refreshHome();toast('✅ Invoice paid & income recorded!');
+}
+
+// ---- PAYABLES ----
+function refreshPayables(){
+  const el=document.getElementById('pay-list');if(!el)return;
+  if(!S.payables.length){el.innerHTML='<div style="padding:14px;color:var(--text3);font-size:13px;text-align:center">No bills yet.</div>';return;}
+  el.innerHTML=S.payables.map(p=>{
+    const paid=p.status==='paid';
+    const c=paid?'var(--green)':'var(--red)';
+    let html='<div class="inv-row">';
+    html+='<div style="flex:1"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase">'+(p.cat||'Bill')+'</div>';
+    html+='<div style="font-size:13px;font-weight:600">'+p.vendor+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">Due: '+p.due+'</div></div>';
+    html+='<div style="text-align:right;margin-right:8px"><div style="font-size:15px;font-weight:800;color:'+c+'">'+ff(p.amount)+'</div>';
+    html+='<div style="font-size:10px;font-weight:700;color:'+c+';text-transform:uppercase">'+p.status+'</div></div>';
+    if(!paid)html+='<button onclick="markBillPaid(\''+p.id+'\')" style="padding:7px 11px;border-radius:var(--rxs);background:var(--red-l);color:var(--red);border:1px solid #FECACA;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">Pay</button>';
+    html+='</div>';
+    return html;
+  }).join('');
+}
+function addPayable(){
+  const vendor=prompt('Vendor / Supplier name:');if(!vendor?.trim())return;
+  const amount=parseFloat(prompt('Bill amount:'));if(!amount||amount<=0)return toast('Invalid amount');
+  const cat=prompt('Category (e.g. Rent, Utilities):')||'Other Expense';
+  const due=prompt('Due date (YYYY-MM-DD):')||new Date().toISOString().split('T')[0];
+  S.payables.push({id:'pay'+Date.now(),vendor:vendor.trim(),amount,cat,due,status:'unpaid',date:new Date().toISOString().split('T')[0]});
+  save();refreshPayables();toast('✅ Bill added!');
+}
+function markBillPaid(id){
+  const p=S.payables.find(x=>x.id===id);if(!p)return;
+  p.status='paid';
+  S.txs.unshift({id:Date.now(),type:'expense',amount:p.amount,desc:'Bill — '+p.vendor,cat:p.cat,date:new Date().toISOString().split('T')[0],biz:S.curBiz,currency:S.currency,taxAmt:0,taxPct:0,ref:'',note:'',recurring:'none',acctId:'cash',acct2Id:''});
+  const acct=S.accounts.find(a=>a.id==='cash');if(acct)acct.balance-=p.amount;
+  save();refreshPayables();refreshHome();toast('✅ Bill paid & expense recorded!');
+}
+
+// ---- BUDGET ----
+function refreshBudget(){
+  const el=document.getElementById('budget-list');if(!el)return;
+  if(!S.budgets.length){
+    el.innerHTML='<div style="padding:14px 16px;text-align:center;color:var(--text3);font-size:13px">No budgets set yet.<br>Tap the button below to set a monthly spending limit.</div>';
+    return;
+  }
+  const now=new Date();
+  const nm=now.getMonth(),ny=now.getFullYear();
+  // All expense transactions for this business
+  const allExp=S.txs.filter(t=>t.type==='expense'&&(!t.biz||t.biz===S.curBiz));
+  // This month's expenses
+  const monthExp=allExp.filter(t=>{
+    const d=new Date(t.date);
+    return d.getMonth()===nm&&d.getFullYear()===ny;
+  });
+  // Use month if available, otherwise all-time
+  const baseTxs=monthExp.length>0?monthExp:allExp;
+  const label=monthExp.length>0?'This Month':'All Time';
+
+  let html='<div style="padding:0 12px 6px;font-size:11px;color:var(--text2)">Period: <b>'+label+'</b></div>';
+  S.budgets.forEach(function(b){
+    const spent=baseTxs.filter(function(t){
+      return (t.cat||'').toLowerCase()===b.cat.toLowerCase();
+    }).reduce(function(s,t){return s+t.amount;},0);
+    const pct=b.amount>0?Math.min(100,Math.round((spent/b.amount)*100)):0;
+    const over=spent>b.amount;
+    const remaining=Math.max(0,b.amount-spent);
+    const barColor=over?'var(--red)':pct>75?'var(--orange)':'var(--green)';
+    const textColor=over?'var(--red)':pct>75?'var(--orange)':'var(--green)';
+
+    html+='<div class="bud-card">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+    html+='<div><div style="font-size:14px;font-weight:600">'+b.cat+'</div>';
+    html+='<div style="font-size:10px;color:var(--text3);margin-top:2px;font-weight:600;text-transform:uppercase">'+label+' Budget</div></div>';
+    html+='<div style="text-align:right">';
+    html+='<div style="font-size:15px;font-weight:800;color:'+(over?'var(--red)':'var(--text)')+'">'+ff(spent)+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">of '+ff(b.amount)+'</div></div></div>';
+    html+='<div style="background:var(--bg);border-radius:4px;height:8px;overflow:hidden">';
+    html+='<div style="background:'+barColor+';height:8px;border-radius:4px;width:'+pct+'%"></div></div>';
+    html+='<div style="display:flex;justify-content:space-between;margin-top:5px">';
+    html+='<div style="font-size:11px;font-weight:600;color:'+textColor+'">'+(over?'⚠️ Over by '+ff(spent-b.amount):pct+'% used')+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">'+(remaining>0?ff(remaining)+' left':'Reached')+'</div></div>';
+    html+='<button onclick="deleteBudget(\''+b.id+'\')" style="margin-top:8px;padding:5px 12px;border-radius:var(--rxs);background:var(--red-l);color:var(--red);border:1px solid #FECACA;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;touch-action:manipulation">Delete Budget</button>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+function deleteBudget(id){
+  S.budgets=S.budgets.filter(b=>b.id!==id);save();refreshBudget();toast('Budget deleted');
+}
+function addBudget(){
+  const allCats=[...(S.categories.expense||[])];
+  const cat=prompt('Category to budget:\n\nAvailable: '+allCats.slice(0,12).join(', '));
+  if(!cat||!cat.trim())return;
+  const amount=parseFloat(prompt('Monthly spending limit for "'+cat.trim()+'":'));
+  if(!amount||amount<=0){toast('Invalid amount');return;}
+  const ex=S.budgets.find(b=>b.cat.toLowerCase()===cat.trim().toLowerCase());
+  if(ex){ex.amount=amount;toast('Budget updated!');}
+  else S.budgets.push({id:'bud'+Date.now(),cat:cat.trim(),amount});
+  save();refreshBudget();toast('✅ Budget set!');
+}
+
+// ---- CATEGORIES ----
+function renderCatsPage(){
+  const el=document.getElementById('cats-body');if(!el)return;
+  const types=['income','expense','transfer','journal'];
+  const labels={income:'Income',expense:'Expense',transfer:'Transfer',journal:'Journal'};
+  let html='';
+  types.forEach(function(t){
+    html+='<div class="sec-hd">'+labels[t]+' Categories</div>';
+    html+='<div style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:5px">';
+    (S.categories[t]||[]).forEach(function(c){
+      html+='<div class="feat-pill">'+c+' <span onclick="deleteCat(\''+t+'\',\''+c.replace(/'/g,"\\'")+'\')" style="margin-left:3px;color:var(--red);cursor:pointer;font-weight:700;touch-action:manipulation">✕</span></div>';
+    });
+    html+='<div class="feat-pill" onclick="addCat(\''+t+'\')" style="background:none;border-style:dashed;color:var(--blue);cursor:pointer;touch-action:manipulation">＋ Add</div>';
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+function addCat(type){
+  const name=prompt('New category name:');
+  if(!name||!name.trim())return;
+  if(!S.categories[type])S.categories[type]=[];
+  if(S.categories[type].includes(name.trim()))return toast('Already exists');
+  S.categories[type].push(name.trim());
+  save();renderCatsPage();toast('✅ Category added!');
+}
+function deleteCat(type,name){
+  if(!confirm('Delete "'+name+'"?'))return;
+  S.categories[type]=S.categories[type].filter(c=>c!==name);
+  save();renderCatsPage();toast('Deleted');
+}
+
+// ---- TEAM ----
+function refreshTeam(){
+  const el=document.getElementById('mem-list');if(!el)return;
+  if(!S.team.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3)">No team members yet.</div>';return;}
+  el.innerHTML=S.team.map((m,i)=>
+    '<div class="mem-row">'+
+    '<div class="av" style="background:'+COLORS[i%COLORS.length]+'">'+m.name[0].toUpperCase()+'</div>'+
+    '<div class="mbody"><div class="mn">'+m.name+'</div><div class="mr">'+m.role+'</div></div>'+
+    '<span class="badge '+(m.role==='Primary Admin'?'pa':m.role==='Admin'?'ad':'em')+'">'+m.role+'</span>'+
+    '</div>'
+  ).join('');
+}
+function addMember(){
+  const name=prompt('Member name:');if(!name?.trim())return;
+  const role=prompt('Role:\nPrimary Admin / Admin / Employee')||'Employee';
+  const roles=['Primary Admin','Admin','Employee'];
+  S.team.push({name:name.trim(),role:roles.includes(role)?role:'Employee',color:COLORS[S.team.length%COLORS.length]});
+  save();refreshTeam();toast('👤 Member added!');
+}
+
+// ---- BUSINESS ----
+function showBizModal(){
+  const div=document.createElement('div');
+  div.className='modal-bg';
+  div.onclick=e=>{if(e.target===div)div.remove();};
+  let html='<div class="modal" onclick="event.stopPropagation()">';
+  html+='<div class="modal-handle"></div><div class="modal-title">Your Businesses</div>';
+  S.businesses.forEach(b=>{
+    const active=b===S.curBiz;
+    html+='<div onclick="selectBiz(\''+b.replace(/'/g,"\\'")+'\',this.closest(\'.modal-bg\'))" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:7px;cursor:pointer;touch-action:manipulation">';
+    html+='<span style="font-size:18px">🏢</span><span style="flex:1;font-size:13px;font-weight:500">'+b+'</span>';
+    if(active)html+='<span style="color:var(--blue);font-weight:700;font-size:16px">✓</span>';
+    html+='</div>';
+  });
+  html+='<button class="modal-btn primary" onclick="addBiz(this.closest(\'.modal-bg\'))">＋ Add New Business</button>';
+  html+='</div>';
+  div.innerHTML=html;
+  document.body.appendChild(div);
+}
+function selectBiz(name,modal){
+  S.curBiz=name;save();
+  document.getElementById('biz-name').textContent=name;
+  document.getElementById('s-biz').textContent=S.businesses.length+' business'+(S.businesses.length>1?'es':'');
+  modal?.remove();refreshHome();toast('Switched to '+name);
+}
+function addBiz(modal){
+  const name=prompt('New business name:');
+  if(!name?.trim())return;
+  if(S.businesses.includes(name.trim()))return toast('Already exists');
+  S.businesses.push(name.trim());save();
+  modal?.remove();showBizModal();toast('✅ Business added!');
+}
+
+// ---- CURRENCY ----
+function renderCurGrid(){
+  const el=document.getElementById('cur-grid');if(!el)return;
+  el.innerHTML=Object.values(CURR).map(c=>{
+    const on=S.currency===c.s;
+    return '<div class="cur-card'+(on?' on':'')+'" onclick="setCur(\''+c.s+'\')">'+(on?'<div class="cur-dot"></div>':'')+
+      '<div class="cur-sym">'+c.f+' '+c.s+'</div>'+
+      '<div class="cur-name">'+c.n+'</div>'+
+      '<div class="cur-ctry">'+c.c+'</div></div>';
+  }).join('');
+}
+function setCur(cur){
+  S.currency=cur;save();renderCurGrid();refreshHome();
+  const badge=document.getElementById('cur-badge');if(badge)badge.textContent=cur;
+  const sCur=document.getElementById('s-cur');if(sCur)sCur.textContent=cur+' — '+(CURR[cur]?.n||cur);
+  toast('Currency: '+cur);
+}
+
+// ---- ADMIN ----
+function showAdminPanel(){
+  if(!isOwner())return toast('Access denied');
+  const div=document.createElement('div');
+  div.className='modal-bg center';
+  let html='<div class="modal center-m" onclick="event.stopPropagation()" style="width:calc(100% - 24px)">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  html+='<div style="font-size:16px;font-weight:800">🛡️ Admin Panel</div>';
+  html+='<button class="modal-close" onclick="this.closest(\'.modal-bg\').remove()">✕</button></div>';
+  html+='<div style="background:var(--red-l);border:1px solid #FECACA;border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;font-size:11px;color:#991B1B"><b>Owner Only.</b> Activate after payment. Block to remove access instantly.</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  html+='<div class="sbox"><div class="sl">Total</div><div class="sv">'+S.users.length+'</div></div>';
+  html+='<div class="sbox"><div class="sl">Active</div><div class="sv" style="color:var(--green)">'+S.users.filter(u=>u.status==='active').length+'</div></div>';
+  html+='<div class="sbox"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)">'+S.users.filter(u=>u.status==='pending').length+'</div></div>';
+  html+='<div class="sbox"><div class="sl">Blocked</div><div class="sv" style="color:var(--red)">'+S.users.filter(u=>u.status==='blocked').length+'</div></div></div>';
+  html+='<div style="max-height:50vh;overflow-y:auto">';
+  S.users.forEach(u=>{
+    const sc=u.status==='active'?'var(--green)':u.status==='pending'?'var(--amber)':'var(--red)';
+    const sbg=u.status==='active'?'var(--green-l)':u.status==='pending'?'var(--amber-l)':'var(--red-l)';
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">';
+    html+='<div class="av" style="background:'+(u.role==='owner'?'var(--blue)':COLORS[2])+';width:32px;height:32px;font-size:12px">'+u.name[0].toUpperCase()+'</div>';
+    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+u.name+'</div>';
+    html+='<div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(u.email||u.phone||'')+'</div></div>';
+    html+='<span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:'+sbg+';color:'+sc+'">'+u.status+'</span>';
+    if(u.role!=='owner'){
+      html+='<div style="display:flex;flex-direction:column;gap:3px">';
+      html+='<button onclick="setUserStatus(\''+u.id+'\',\'active\')" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid var(--green);background:var(--green-l);color:var(--green);cursor:pointer;font-family:inherit;touch-action:manipulation">✓</button>';
+      html+='<button onclick="setUserStatus(\''+u.id+'\',\'blocked\')" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid #FECACA;background:var(--red-l);color:var(--red);cursor:pointer;font-family:inherit;touch-action:manipulation">✕</button>';
+      html+='</div>';
+    } else {
+      html+='<span style="font-size:10px;color:var(--text3)">Owner</span>';
+    }
+    html+='</div>';
+  });
+  html+='</div></div>';
+  div.innerHTML=html;
+  div.onclick=function(e){if(e.target===div)div.remove();};
+  document.body.appendChild(div);
+}
+function setUserStatus(uid,status){
+  const u=S.users.find(x=>x.id===uid);if(!u)return;
+  u.status=status;if(status==='active')u.sub='active';
+  save();document.querySelector('.modal-bg')?.remove();showAdminPanel();
+  toast(status==='active'?'✅ User activated!':'🚫 User blocked');
+}
+
+// ---- SUBSCRIPTION MODAL ----
+function showSubModal(){
+  const div=document.createElement('div');
+  div.className='modal-bg';
+  div.onclick=e=>{if(e.target===div)div.remove();};
+  div.innerHTML='<div class="modal" onclick="event.stopPropagation()">'+
+    '<div class="modal-handle"></div><div class="modal-title">Subscription Plans</div>'+
+    '<div style="background:var(--blue-l);border-radius:var(--rs);padding:14px;margin-bottom:14px;border:1px solid #BFDBFE">'+
+    '<div style="font-size:14px;font-weight:800;color:var(--blue);margin-bottom:6px">Monthly Plan</div>'+
+    '<div style="font-size:11px;color:#1E40AF;line-height:1.8">✓ Unlimited transactions<br>✓ Multiple businesses<br>✓ Full accounting suite<br>✓ PDF &amp; CSV reports<br>✓ Budget &amp; invoice tracking<br>✓ Team management<br>✓ PIN security lock</div></div>'+
+    '<div style="background:var(--amber-l);border-radius:var(--rs);padding:12px;font-size:12px;color:var(--amber);border:1px solid #FDE68A">'+
+    '💬 Contact admin to subscribe. Account is activated after payment confirmation.</div></div>';
+  document.body.appendChild(div);
+}
+
+// ---- EXPORTS ----
+function exportCSV(){
+  const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
+  if(!txs.length)return toast('No transactions to export');
+  const rows=[['Date','Type','Description','Category','Currency','Amount','Tax%','Tax Amount','Reference','Note','Recurring']];
+  txs.forEach(t=>rows.push([t.date,t.type,t.desc,t.cat||'',t.currency||S.currency,t.amount,t.taxPct||0,t.taxAmt||0,t.ref||'',t.note||'',t.recurring||'none']));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='CashLedger_'+S.curBiz.replace(/\s+/g,'_')+'_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();toast('📊 CSV exported!');
+}
+function exportTxt(){
+  const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
+  if(!txs.length)return toast('No data to export');
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  let txt='CASH LEDGER REPORT\nBusiness: '+S.curBiz+'\nDate: '+new Date().toLocaleDateString()+'\n'+'='.repeat(45)+'\n\n';
+  txt+='SUMMARY\nIncome:  '+ff(inc)+'\nExpense: '+ff(exp)+'\nNet:     '+ff(inc-exp)+'\n\n'+'='.repeat(45)+'\nTRANSACTIONS\n\n';
+  txs.forEach(t=>{txt+='['+t.date+'] '+t.type.toUpperCase()+' | '+t.desc+' | '+(t.cat||'')+' | '+sym()+fmt(t.amount)+(t.ref?' | '+t.ref:'')+(t.note?' | '+t.note:'')+'\n';});
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(txt);
+  a.download='CashLedger_'+new Date().toISOString().split('T')[0]+'.txt';
+  a.click();toast('📄 Text exported!');
+}
+function exportPDF(){
+  const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
+  if(!txs.length)return toast('No transactions to export');
+  const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const net=inc-exp;
+  const now=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const catMap={};txs.forEach(t=>{catMap[t.cat||'Other']=(catMap[t.cat||'Other']||0)+t.amount;});
+  const grp={};txs.forEach(t=>(grp[t.date]=grp[t.date]||[]).push(t));
+  let txRows='';
+  Object.entries(grp).sort((a,b)=>b[0]<a[0]?-1:1).forEach(function([dt,items]){
+    items.forEach(function(t){
+      const tcolor=t.type==='income'?'#047857':'#B91C1C';
+      const sign=t.type==='income'?'+':'−';
+      const tbg=t.type==='income'?'#ECFDF5':'#FEF2F2';
+      txRows+='<tr><td style="color:#6B7280;white-space:nowrap;font-size:11px">'+t.date+'</td>';
+      txRows+='<td><span style="padding:2px 6px;border-radius:8px;font-size:10px;font-weight:700;background:'+tbg+';color:'+tcolor+'">'+t.type.toUpperCase()+'</span></td>';
+      txRows+='<td>'+t.desc+(t.ref?' ('+t.ref+')':'')+'</td>';
+      txRows+='<td style="color:#6B7280">'+(t.cat||'')+'</td>';
+      txRows+='<td style="color:'+tcolor+'">'+sign+sym()+fmt(t.amount)+'</td></tr>';
+    });
+  });
+  let catRows='';
+  Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,10).forEach(function([c,a]){
+    catRows+='<tr><td>'+(c||'Other')+'</td><td>'+sym()+fmt(a)+'</td></tr>';
+  });
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Cash Ledger — '+S.curBiz+'</title><style>'+
+    '*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111827;padding:20px;font-size:13px}'+
+    '.hdr{background:#1A56DB;color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}'+
+    '.hdr h1{font-size:20px;font-weight:800}.hdr h1 em{color:#6EE7B7;font-style:normal}'+
+    '.hdr .meta{font-size:11px;opacity:.8;line-height:1.7;text-align:right}'+
+    '.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}'+
+    '.sc{border-radius:10px;padding:12px;text-align:center}.sc .l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;opacity:.7;margin-bottom:4px}.sc .v{font-size:18px;font-weight:800}'+
+    '.sc.i{background:#ECFDF5;color:#047857}.sc.e{background:#FEF2F2;color:#B91C1C}.sc.n{background:#EFF6FF;color:#1A56DB}'+
+    'h2{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7280;margin:14px 0 8px;padding-bottom:5px;border-bottom:2px solid #E5E7EB}'+
+    'table{width:100%;border-collapse:collapse;font-size:12px}th{padding:7px 8px;background:#F9FAFB;font-size:10px;font-weight:700;text-align:left;color:#6B7280;text-transform:uppercase;letter-spacing:.3px;border-bottom:2px solid #E5E7EB}'+
+    'th:last-child,td:last-child{text-align:right}td{padding:6px 8px;border-bottom:1px solid #F3F4F6}'+
+    '.total td{font-weight:800;border-top:2px solid #E5E7EB;font-size:13px}'+
+    '.ftr{margin-top:20px;padding-top:12px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF}'+
+    '.pbt{display:inline-flex;align-items:center;gap:6px;background:#1A56DB;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:14px;font-family:inherit}'+
+    '.tip{font-size:11px;color:#6B7280;margin-top:6px;margin-bottom:14px}'+
+    '@media print{.no-print{display:none!important}}'+
+    '@media(max-width:480px){.summary{grid-template-columns:1fr 1fr}.sc.n{grid-column:1/-1}}'+
+    '</style></head><body>'+
+    '<div class="no-print"><button class="pbt" onclick="window.print()">🖨️ Print / Save as PDF</button>'+
+    '<div class="tip">💡 In print dialog select <b>Save as PDF</b>. iPhone: Share → Print → pinch preview → Save as PDF.</div></div>'+
+    '<div class="hdr"><div><h1>Cash<em>Ledger</em></h1><div style="font-size:12px;margin-top:3px;opacity:.8">Business Finance Report</div></div>'+
+    '<div class="meta"><b>'+S.curBiz+'</b><br>Generated: '+now+'<br>Currency: '+S.currency+'<br>Records: '+txs.length+'</div></div>'+
+    '<div class="summary">'+
+    '<div class="sc i"><div class="l">Income</div><div class="v">'+sym()+fmt(inc)+'</div></div>'+
+    '<div class="sc e"><div class="l">Expense</div><div class="v">'+sym()+fmt(exp)+'</div></div>'+
+    '<div class="sc n"><div class="l">Net Balance</div><div class="v">'+sym()+fmt(net)+'</div></div></div>'+
+    '<h2>Top Categories</h2><table><tr><th>Category</th><th>Amount</th></tr>'+catRows+'</table>'+
+    '<h2>All Transactions</h2><table>'+
+    '<tr><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Amount</th></tr>'+
+    txRows+
+    '<tr class="total"><td colspan="4">NET BALANCE</td><td style="color:'+(net>=0?'#047857':'#B91C1C')+'">'+sym()+fmt(net)+'</td></tr></table>'+
+    '<div class="ftr"><span>Cash Ledger — Business Finance Manager</span><span>'+now+'</span></div></body></html>';
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const win=window.open(url,'_blank');
+  if(!win){
+    const a=document.createElement('a');a.href=url;
+    a.download='CashLedger_Report_'+S.curBiz.replace(/\s+/g,'_')+'_'+new Date().toISOString().split('T')[0]+'.html';
+    a.click();toast('📄 Report downloaded — open to print as PDF');
+  } else toast('📄 PDF Report opened!');
+}
+
+// ---- GUIDE ----
+const GUIDES=[
+  {n:1,i:'🔐',t:'PIN Lock',d:'First open creates a 4-digit PIN. Locks every session. Use "Forgot PIN? Reset App" button to reset.',tip:'Reset also clears local data — export CSV first if you have transactions.'},
+  {n:2,i:'📱',t:'Mobile Use',d:'Send the HTML file via WhatsApp/email. Open in Chrome (Android) or Safari (iPhone). Add to Home Screen for app-like experience.',tip:'iPhone: Safari → Share → Add to Home Screen.'},
+  {n:3,i:'💳',t:'Register & Subscribe',d:'Users tap Register, fill details. Status is Pending. You activate from Admin Panel after payment.',tip:'Only activate after receiving subscription payment.'},
+  {n:4,i:'🛡️',t:'Admin Panel',d:'Settings → Admin Control Panel. Activate, block or view all users. Only you (owner) can access this.',tip:'Block instantly stops access — useful if someone stops paying.'},
+  {n:5,i:'💰',t:'Opening Balance',d:'Go to Accounts → "💰 Opening Balance" button. Select your account and enter the current amount. This shows immediately in your home balance.',tip:'Set opening balance for Cash in Hand and Bank Account before adding daily transactions.'},
+  {n:6,i:'➕',t:'Income & Expense',d:'Home → + Income or − Expense. Enter amount, description, category, date. Optionally add tax %, reference, and recurring setting.',tip:'Use Journal Entry for accounting adjustments like depreciation.'},
+  {n:7,i:'🏷️',t:'Custom Categories',d:'Settings → Manage Categories. Add or delete for Income, Expense, Transfer, Journal. Also add on the fly while entering a transaction.',tip:'Create industry-specific categories for your business type.'},
+  {n:8,i:'🎯',t:'Budget Tracker',d:'Home → Budget. Set monthly limits per expense category. Bar turns orange at 75%, red when over budget.',tip:'Budgets compare against THIS month\'s expenses automatically.'},
+  {n:9,i:'🧾',t:'Invoices',d:'Home → Invoices. Create client invoices. Tap ✓ Paid to mark paid — auto-adds income transaction.',tip:'Invoice numbers are tracked automatically.'},
+  {n:10,i:'📋',t:'Bills & Payables',d:'Home → Bills. Add vendor bills with due dates. Tap Pay — auto-records expense transaction.',tip:'Never forget a payment — add all recurring bills here.'},
+  {n:11,i:'📊',t:'Reports & PDF',d:'Reports tab: 6-month chart, category breakdown, smart insight. Tap PDF Report to open printable report in a new tab.',tip:'In print dialog choose "Save as PDF" to get a PDF file.'},
+  {n:12,i:'📈',t:'P&L Statement',d:'Reports → P&L. Full Profit & Loss by category. Export as PDF for your accountant.',tip:'Share monthly P&L with your accountant or business partner.'},
+  {n:13,i:'💱',t:'Currencies',d:'Tap currency badge top-right or Settings → Currency. 10 currencies: AED, PKR, USD, EUR, GBP, SAR, INR, CAD, OMR, QAR.',tip:'Currency is saved per transaction for accurate records.'},
+  {n:14,i:'☁️',t:'Host Online',d:'Rename file to index.html. Upload to netlify.com (free drag & drop). Share the link — works on all devices.',tip:'Hosted version saves data permanently in each user\'s browser.'},
+];
+function renderGuide(){
+  const el=document.getElementById('guide-body');if(!el)return;
+  el.innerHTML=GUIDES.map(g=>
+    '<div class="step-card"><div class="step-hd">'+
+    '<div class="step-num">'+g.n+'</div>'+
+    '<span style="font-size:17px">'+g.i+'</span>'+
+    '<div class="step-title">'+g.t+'</div></div>'+
+    '<div class="step-desc">'+g.d+'</div>'+
+    '<div class="step-tip">💡 '+g.tip+'</div></div>'
+  ).join('');
+}
+
+// ---- INIT ----
+initPin();
+</script>
+</body>
+</html>
