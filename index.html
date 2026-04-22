@@ -362,7 +362,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
       <div class="logo">Cash<em>Ledger</em></div>
       <div class="tb-title" style="color:var(--text2)">Reports</div>
     </div>
-    <div class="pg-body" id="pg-reports-body">
+    <div class="pg-body" id="pg-reports-body" style="padding-bottom:100px">
       <div class="stat-grid">
         <div class="sbox"><div class="sl">Income</div><div class="sv" style="color:var(--green)" id="r-inc">0.00</div></div>
         <div class="sbox"><div class="sl">Expense</div><div class="sv" style="color:var(--red)" id="r-exp">0.00</div></div>
@@ -554,7 +554,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
   <!-- BOTTOM NAV -->
   <div class="bnav">
     <button class="ni on" id="ni-home" onclick="navTo('pg-home',this)"><span class="ni-ic">🏠</span>Home</button>
-    <button class="ni" id="ni-reports" onclick="navTo('pg-reports',this)"><span class="ni-ic">📊</span>Reports</button>
+    <button class="ni" id="ni-reports" onclick="navTo('pg-reports',this);setTimeout(refreshReports,100)"><span class="ni-ic">📊</span>Reports</button>
     <button class="ni" id="ni-team" onclick="navTo('pg-team',this)"><span class="ni-ic">👥</span>Team</button>
     <button class="ni" id="ni-settings" onclick="navTo('pg-settings',this)"><span class="ni-ic">⚙️</span>Settings</button>
   </div>
@@ -732,8 +732,17 @@ function apiCall(data, onSuccess, onError) {
 
 // ---- AUTH ----
 function showAuthOrApp(){
-  if(S.loggedIn && S.curUser) showApp();
-  else document.getElementById('auth-wrap').style.display='flex';
+  // If we have cached user data and logged in flag, go straight to app
+  if(S.loggedIn && S.curUser && S.cachedUser) {
+    showApp();
+  } else if(S.loggedIn && S.curUser && !S.cachedUser) {
+    // Logged in but cache lost - re-authenticate silently
+    document.getElementById('auth-wrap').style.display='flex';
+    toast('Please login again to continue.');
+    S.loggedIn=false; save();
+  } else {
+    document.getElementById('auth-wrap').style.display='flex';
+  }
 }
 function authTab(t){
   document.getElementById('tab-l').classList.toggle('on',t==='l');
@@ -764,7 +773,7 @@ function doLogin(){
       // Store user in local state
       S.loggedIn = true;
       S.curUser = u.id;
-      S._userCache = u; // cache full user object
+      S.cachedUser = u; // persist full user object in storage
       save();
       document.getElementById('auth-wrap').style.display='none';
       showApp();
@@ -803,13 +812,13 @@ function setAuthStatus(msg, color){
   el.textContent = msg;
 }
 function doLogout(){
-  S.loggedIn=false; S.curUser=null; S._userCache=null; save();
+  S.loggedIn=false; S.curUser=null; S.cachedUser=null; save();
   document.getElementById('main-app').style.display='none';
   _pe=''; _ps='verify'; updDots();
   document.getElementById('pin-err').textContent='';
   document.getElementById('pin-screen').style.display='flex';
 }
-function curUser(){ return S._userCache || null; }
+function curUser(){ return S.cachedUser || null; }
 function isOwner(){ const u=curUser(); return u && (u.role==='owner' || u.id==='admin'); }
 
 function showApp(){
@@ -864,8 +873,8 @@ function navTo(id,el){
   const pg=document.getElementById(id);
   if(pg){pg.classList.add('active');pg.classList.add('base');}
   pageStack=[];
-  if(id==='pg-reports')setTimeout(refreshReports,30);
-  if(id==='pg-team')setTimeout(refreshTeam,30);
+  if(id==='pg-reports')setTimeout(refreshReports,80);
+  if(id==='pg-team')setTimeout(refreshTeam,50);
 }
 
 // ---- HELPERS ----
@@ -1118,14 +1127,17 @@ function editEntry(id){
 
 // ---- REPORTS ----
 function refreshReports(){
+  // If reports page not active yet, retry
+  const rPage=document.getElementById('pg-reports');
+  if(!rPage||!rPage.classList.contains('active')){setTimeout(refreshReports,100);return;}
   const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
   const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const net=inc-exp;
-  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  const setEl=function(id,val){const el=document.getElementById(id);if(el)el.textContent=val;};
   setEl('r-inc',ff(inc));
   setEl('r-exp',ff(exp));
-  setEl('r-cnt',txs.length);
+  setEl('r-cnt',String(txs.length));
   const nel=document.getElementById('r-net');
   if(nel){nel.textContent=ff(net);nel.style.color=net>=0?'var(--green)':'var(--red)';}
   renderBarChart(txs);
