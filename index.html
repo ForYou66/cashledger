@@ -22,9 +22,9 @@
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;color:var(--text);touch-action:manipulation}
 .app{width:100%;max-width:430px;height:100vh;height:100dvh;margin:0 auto;background:var(--white);display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.1)}
-.pg{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--white);transition:transform .25s ease;transform:translateX(100%);z-index:1}
-.pg.active{transform:translateX(0);z-index:2}
-.pg.base{transform:translateX(0);z-index:1}
+.pg{display:none;flex-direction:column;background:var(--white);flex:1;overflow:hidden;width:100%;height:100%;position:absolute;top:0;left:0}
+.pg.active{display:flex;z-index:2}
+.pg.base{display:flex;z-index:1}
 .tb{padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--white)}
 .logo{font-size:19px;font-weight:800;color:var(--blue);letter-spacing:-.5px}
 .logo em{color:var(--green);font-style:normal}
@@ -819,16 +819,28 @@ function doLogout(){
   document.getElementById('pin-screen').style.display='flex';
 }
 function curUser(){ return S.cachedUser || null; }
-function isOwner(){ const u=curUser(); return u && (u.role==='owner' || u.id==='admin'); }
+function isOwner(){ const u=curUser(); return u && (u.role==='owner' || u.id==='admin' || (u.email && u.email.toLowerCase()==='foreverercompany@gmail.com')); }
 
 function showApp(){
   document.getElementById('main-app').style.display='flex';
   document.getElementById('emg-bar').style.display='none';
+  // Make sure home page is the only visible page
+  document.querySelectorAll('.pg').forEach(p=>{
+    p.style.display='none';
+    p.classList.remove('active');
+    p.classList.remove('base');
+  });
+  const homePg=document.getElementById('pg-home');
+  if(homePg){homePg.style.display='flex';homePg.classList.add('active');homePg.classList.add('base');}
   const u=curUser();
   if(u){
     document.getElementById('s-uname').textContent=u.name;
     document.getElementById('s-uemail').textContent=u.email||u.phone||'';
-    if(isOwner())document.getElementById('admin-row').style.display='flex';
+    // Show admin panel for owner (row 1 in sheet = owner)
+    if(isOwner()){
+      const adminRow=document.getElementById('admin-row');
+      if(adminRow)adminRow.style.display='flex';
+    }
   }
   if(!S.team.length&&u)S.team=[{name:u.name,role:'Primary Admin',color:COLORS[0]}];
   refreshHome();
@@ -840,38 +852,45 @@ function showApp(){
   document.getElementById('cur-badge').textContent=S.currency;
   document.getElementById('s-cur').textContent=S.currency+' — '+(CURR[S.currency]?.n||S.currency);
   document.getElementById('s-biz').textContent=S.businesses.length+' business'+(S.businesses.length>1?'es':'');
+  pageStack=[];
 }
 
 // ---- NAVIGATION ----
 let pageStack=[];
 function openPage(id){
-  const cur=document.querySelector('.pg.active');
-  if(cur)cur.classList.remove('active');
+  document.querySelectorAll('.pg').forEach(p=>{
+    if(!p.classList.contains('base'))p.style.display='none';
+    p.classList.remove('active');
+  });
   const pg=document.getElementById(id);
-  if(pg){pg.classList.add('active');pageStack.push(id);}
-  if(id==='pg-reports')setTimeout(refreshReports,30);
-  if(id==='pg-accounts')setTimeout(refreshAccounts,30);
-  if(id==='pg-invoices')setTimeout(refreshInvoices,30);
-  if(id==='pg-payables')setTimeout(refreshPayables,30);
-  if(id==='pg-budget')setTimeout(refreshBudget,30);
-  if(id==='pg-pl')setTimeout(renderPL,30);
-  if(id==='pg-categories')setTimeout(renderCatsPage,30);
+  if(pg){pg.style.display='flex';pg.classList.add('active');pageStack.push(id);}
+  if(id==='pg-reports')setTimeout(refreshReports,50);
+  if(id==='pg-accounts')setTimeout(refreshAccounts,50);
+  if(id==='pg-invoices')setTimeout(refreshInvoices,50);
+  if(id==='pg-payables')setTimeout(refreshPayables,50);
+  if(id==='pg-budget')setTimeout(refreshBudget,50);
+  if(id==='pg-pl')setTimeout(renderPL,50);
+  if(id==='pg-categories')setTimeout(renderCatsPage,50);
 }
 function closePage(){
-  const cur=document.querySelector('.pg.active');
-  if(cur)cur.classList.remove('active');
+  const cur=document.querySelector('.pg.active:not(.base)');
+  if(cur){cur.style.display='none';cur.classList.remove('active');}
   pageStack.pop();
   const prev=pageStack.length?pageStack[pageStack.length-1]:null;
-  if(prev)document.getElementById(prev)?.classList.add('active');
-  else document.querySelector('.pg.base')?.classList.add('active');
+  if(prev){
+    const pg=document.getElementById(prev);
+    if(pg){pg.style.display='flex';pg.classList.add('active');}
+  } else {
+    const base=document.querySelector('.pg.base');
+    if(base){base.style.display='flex';base.classList.add('active');}
+  }
 }
 function navTo(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   if(el)el.classList.add('on');
-  document.querySelectorAll('.pg.active').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.pg.base').forEach(p=>p.classList.remove('base'));
+  document.querySelectorAll('.pg').forEach(p=>{p.style.display='none';p.classList.remove('active');p.classList.remove('base');});
   const pg=document.getElementById(id);
-  if(pg){pg.classList.add('active');pg.classList.add('base');}
+  if(pg){pg.style.display='flex';pg.classList.add('active');pg.classList.add('base');}
   pageStack=[];
   if(id==='pg-reports')setTimeout(refreshReports,80);
   if(id==='pg-team')setTimeout(refreshTeam,50);
@@ -1127,9 +1146,9 @@ function editEntry(id){
 
 // ---- REPORTS ----
 function refreshReports(){
-  // If reports page not active yet, retry
+  // Check page is visible
   const rPage=document.getElementById('pg-reports');
-  if(!rPage||!rPage.classList.contains('active')){setTimeout(refreshReports,100);return;}
+  if(!rPage||rPage.style.display==='none'){setTimeout(refreshReports,100);return;}
   const txs=S.txs.filter(t=>!t.biz||t.biz===S.curBiz);
   const inc=txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const exp=txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
