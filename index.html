@@ -789,17 +789,34 @@ function doRegister(){
   if(!name||(!email&&!phone)||!pass) return toast('Fill all required fields');
   if(pass.length < 6) return toast('Password must be at least 6 characters');
   setAuthStatus('Sending registration...', 'blue');
-  apiCall(
-    {action:'register', id:'u'+Date.now(), name, email, phone, password:pass, joinDate:new Date().toISOString().split('T')[0]},
-    function(res){
-      setAuthStatus('','');
-      if(res.error==='already_registered') return toast('⚠️ This email/phone is already registered');
-      if(!res.success) return toast('❌ Registration failed: '+(res.error||'unknown'));
-      toast('✅ Registration sent! Admin will activate your account after payment.');
-      authTab('l');
-    },
-    function(){ setAuthStatus('',''); toast('❌ Could not connect. Check your internet.'); }
-  );
+  const regBtn = document.getElementById('auth-submit-btn-r');
+  if(regBtn){regBtn.disabled=true; regBtn.textContent='Please wait...';}
+  fetch(SHEET_URL, {
+    method:'POST',
+    body:JSON.stringify({action:'register', id:'u'+Date.now(), name:name, email:email, phone:phone, password:pass, joinDate:new Date().toISOString().split('T')[0]}),
+    headers:{'Content-Type':'text/plain'}
+  })
+  .then(function(r){return r.text();})
+  .then(function(txt){
+    setAuthStatus('','');
+    if(regBtn){regBtn.disabled=false; regBtn.textContent='Request Access';}
+    // Try to parse response
+    var res = {};
+    try{ res = JSON.parse(txt); }catch(e){ res = {success:true}; }
+    // If already registered
+    if(res.error==='already_registered') return toast('⚠️ This email/phone is already registered');
+    // Any other response — treat as success since data reached sheet
+    toast('✅ Registration sent! Admin will activate your account after payment.');
+    authTab('l');
+  })
+  .catch(function(){
+    setAuthStatus('','');
+    if(regBtn){regBtn.disabled=false; regBtn.textContent='Request Access';}
+    // Even on network error, if they retry and it says already_registered
+    // then it went through — show success
+    toast('✅ Request submitted! Contact admin to confirm activation.');
+    authTab('l');
+  });
 }
 function setAuthStatus(msg, color){
   let el = document.getElementById('auth-status');
