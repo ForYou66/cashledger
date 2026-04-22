@@ -233,7 +233,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
     <div id="af-l">
       <input class="auth-in" id="l-email" type="email" placeholder="Email or Phone" autocomplete="email">
       <input class="auth-in" id="l-pass" type="password" placeholder="Password" autocomplete="current-password">
-      <button class="auth-btn" ontouchstart="doLogin()" onclick="doLogin()">Login to Cash Ledger</button>
+      <button class="auth-btn" id="auth-submit-btn" ontouchstart="doLogin()" onclick="doLogin()">Login to Cash Ledger</button>
       <div class="auth-note">Only registered &amp; approved users can access.<br>Contact admin to subscribe.</div>
     </div>
     <div id="af-r" style="display:none">
@@ -241,7 +241,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
       <input class="auth-in" id="r-email" type="email" placeholder="Email Address" autocomplete="email">
       <input class="auth-in" id="r-phone" type="tel" placeholder="Phone (+971...)" autocomplete="tel">
       <input class="auth-in" id="r-pass" type="password" placeholder="Create Password" autocomplete="new-password">
-      <button class="auth-btn" ontouchstart="doRegister()" onclick="doRegister()">Request Access</button>
+      <button class="auth-btn" id="auth-submit-btn-r" ontouchstart="doRegister()" onclick="doRegister()">Request Access</button>
       <div class="auth-note">Activated after admin confirms subscription payment.</div>
     </div>
   </div>
@@ -564,9 +564,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 
 <script>
 // ============================================================
-// CHANGE THESE TO YOUR OWN BEFORE SHARING
-const ADMIN_EMAIL = 'foreverercompany@gmail.com';
-const ADMIN_PASS  = 'Admin@CL2024!99';
+// YOUR GOOGLE SHEETS API — DO NOT SHARE THIS FILE PUBLICLY
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyeRxQHkSjqHvtPBTAEIePGfFpjoDsLJ_t2s-osKw4cagKPbrGRqBbxNdzVxzhks0R6AA/exec';
 // ============================================================
 
 const CURR={
@@ -619,7 +618,7 @@ const DEF_STATE={
   currency:'AED',curBiz:'My Business',
   businesses:['My Business'],
   team:[],
-  users:[{id:'admin',name:'Admin',email:ADMIN_EMAIL,phone:'',pass:ADMIN_PASS,role:'owner',status:'active',joinDate:new Date().toISOString().split('T')[0],sub:'lifetime'}],
+  users:[],
   accounts:[
     {id:'cash',name:'Cash in Hand',type:'cash',balance:0},
     {id:'bank',name:'Bank Account',type:'bank',balance:0},
@@ -651,9 +650,7 @@ if(!S.categories)S.categories=JSON.parse(JSON.stringify(DEF_CATS));
 if(!S.invoices)S.invoices=[];
 if(!S.payables)S.payables=[];
 if(!S.budgets)S.budgets=[];
-// always patch owner credentials
-const _ow=S.users.find(u=>u.role==='owner');
-if(_ow){_ow.email=ADMIN_EMAIL;_ow.pass=ADMIN_PASS;}
+// Users managed via Google Sheets
 
 // ---- PIN ----
 let _pe='',_ps=S.pin?'verify':'set1',_pt='';
@@ -712,9 +709,30 @@ function changePIN(){
   document.getElementById('pin-screen').style.display='flex';
 }
 
+// ---- GOOGLE SHEETS API ----
+function apiCall(data, onSuccess, onError) {
+  const btn = document.getElementById('auth-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Please wait...'; }
+  fetch(SHEET_URL, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: {'Content-Type': 'text/plain'}
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (btn) { btn.disabled = false; }
+    onSuccess(res);
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; }
+    if (onError) onError(err);
+    else toast('❌ Connection error. Check internet.');
+  });
+}
+
 // ---- AUTH ----
 function showAuthOrApp(){
-  if(S.loggedIn&&S.curUser)showApp();
+  if(S.loggedIn && S.curUser) showApp();
   else document.getElementById('auth-wrap').style.display='flex';
 }
 function authTab(t){
@@ -722,39 +740,77 @@ function authTab(t){
   document.getElementById('tab-r').classList.toggle('on',t==='r');
   document.getElementById('af-l').style.display=t==='l'?'block':'none';
   document.getElementById('af-r').style.display=t==='r'?'block':'none';
+  // update submit button id reference
+  const btn=document.getElementById('auth-submit-btn');
+  if(btn) btn.textContent = t==='l' ? 'Login to Cash Ledger' : 'Request Access';
 }
 function doLogin(){
-  const em=document.getElementById('l-email').value.trim();
-  const pw=document.getElementById('l-pass').value;
-  if(!em||!pw)return toast('Enter email and password');
-  const u=S.users.find(x=>(x.email===em||x.phone===em)&&x.pass===pw);
-  if(!u)return toast('❌ Invalid email or password');
-  if(u.status==='pending')return toast('⏳ Account pending approval');
-  if(u.status==='blocked')return toast('🚫 Account suspended');
-  S.loggedIn=true;S.curUser=u.id;save();
-  document.getElementById('auth-wrap').style.display='none';
-  showApp();toast('Welcome back, '+u.name.split(' ')[0]+'!');
+  const em = document.getElementById('l-email').value.trim();
+  const pw = document.getElementById('l-pass').value;
+  if(!em||!pw) return toast('Enter email and password');
+  setAuthStatus('Checking your account...', 'blue');
+  apiCall(
+    {action:'login', email:em, password:pw},
+    function(res){
+      setAuthStatus('','');
+      if(!res.success){
+        if(res.error==='invalid_credentials') toast('❌ Wrong email or password');
+        else toast('❌ '+res.error);
+        return;
+      }
+      const u = res.user;
+      if(u.status==='pending') return toast('⏳ Account pending approval. Contact admin.');
+      if(u.status==='blocked') return toast('🚫 Your account has been suspended.');
+      // Store user in local state
+      S.loggedIn = true;
+      S.curUser = u.id;
+      S._userCache = u; // cache full user object
+      save();
+      document.getElementById('auth-wrap').style.display='none';
+      showApp();
+      toast('Welcome back, '+u.name.split(' ')[0]+'! ✅');
+    },
+    function(){ setAuthStatus('',''); toast('❌ Could not connect. Check your internet.'); }
+  );
 }
 function doRegister(){
-  const name=document.getElementById('r-name').value.trim();
-  const email=document.getElementById('r-email').value.trim();
-  const phone=document.getElementById('r-phone').value.trim();
-  const pass=document.getElementById('r-pass').value;
-  if(!name||(!email&&!phone)||!pass)return toast('Fill all required fields');
-  if(email&&S.users.find(u=>u.email===email))return toast('Email already registered');
-  S.users.push({id:'u'+Date.now(),name,email,phone,pass,role:'user',status:'pending',joinDate:new Date().toISOString().split('T')[0],sub:'none'});
-  save();toast('✅ Request sent! Admin will activate after payment.');
-  authTab('l');
+  const name  = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  if(!name||(!email&&!phone)||!pass) return toast('Fill all required fields');
+  if(pass.length < 6) return toast('Password must be at least 6 characters');
+  setAuthStatus('Sending registration...', 'blue');
+  apiCall(
+    {action:'register', id:'u'+Date.now(), name, email, phone, password:pass, joinDate:new Date().toISOString().split('T')[0]},
+    function(res){
+      setAuthStatus('','');
+      if(res.error==='already_registered') return toast('⚠️ This email/phone is already registered');
+      if(!res.success) return toast('❌ Registration failed: '+(res.error||'unknown'));
+      toast('✅ Registration sent! Admin will activate your account after payment.');
+      authTab('l');
+    },
+    function(){ setAuthStatus('',''); toast('❌ Could not connect. Check your internet.'); }
+  );
+}
+function setAuthStatus(msg, color){
+  let el = document.getElementById('auth-status');
+  if(!el){ el=document.createElement('div'); el.id='auth-status'; el.style.cssText='text-align:center;font-size:12px;padding:8px;border-radius:8px;margin-top:8px;font-weight:600'; document.querySelector('.auth-card').appendChild(el); }
+  if(!msg){ el.style.display='none'; return; }
+  el.style.display='block';
+  el.style.background = color==='blue'?'var(--blue-l)':'var(--green-l)';
+  el.style.color = color==='blue'?'var(--blue)':'var(--green)';
+  el.textContent = msg;
 }
 function doLogout(){
-  S.loggedIn=false;S.curUser=null;save();
+  S.loggedIn=false; S.curUser=null; S._userCache=null; save();
   document.getElementById('main-app').style.display='none';
-  _pe='';_ps='verify';updDots();
+  _pe=''; _ps='verify'; updDots();
   document.getElementById('pin-err').textContent='';
   document.getElementById('pin-screen').style.display='flex';
 }
-function curUser(){return S.users.find(u=>u.id===S.curUser)||null;}
-function isOwner(){const u=curUser();return u&&u.role==='owner';}
+function curUser(){ return S._userCache || null; }
+function isOwner(){ const u=curUser(); return u && (u.role==='owner' || u.id==='admin'); }
 
 function showApp(){
   document.getElementById('main-app').style.display='flex';
@@ -1505,45 +1561,70 @@ function showAdminPanel(){
   if(!isOwner())return toast('Access denied');
   const div=document.createElement('div');
   div.className='modal-bg center';
-  let html='<div class="modal center-m" onclick="event.stopPropagation()" style="width:calc(100% - 24px)">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-  html+='<div style="font-size:16px;font-weight:800">🛡️ Admin Panel</div>';
-  html+='<button class="modal-close" onclick="this.closest(\'.modal-bg\').remove()">✕</button></div>';
-  html+='<div style="background:var(--red-l);border:1px solid #FECACA;border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;font-size:11px;color:#991B1B"><b>Owner Only.</b> Activate after payment. Block to remove access instantly.</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
-  html+='<div class="sbox"><div class="sl">Total</div><div class="sv">'+S.users.length+'</div></div>';
-  html+='<div class="sbox"><div class="sl">Active</div><div class="sv" style="color:var(--green)">'+S.users.filter(u=>u.status==='active').length+'</div></div>';
-  html+='<div class="sbox"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)">'+S.users.filter(u=>u.status==='pending').length+'</div></div>';
-  html+='<div class="sbox"><div class="sl">Blocked</div><div class="sv" style="color:var(--red)">'+S.users.filter(u=>u.status==='blocked').length+'</div></div></div>';
-  html+='<div style="max-height:50vh;overflow-y:auto">';
-  S.users.forEach(u=>{
-    const sc=u.status==='active'?'var(--green)':u.status==='pending'?'var(--amber)':'var(--red)';
-    const sbg=u.status==='active'?'var(--green-l)':u.status==='pending'?'var(--amber-l)':'var(--red-l)';
-    html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">';
-    html+='<div class="av" style="background:'+(u.role==='owner'?'var(--blue)':COLORS[2])+';width:32px;height:32px;font-size:12px">'+u.name[0].toUpperCase()+'</div>';
-    html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+u.name+'</div>';
-    html+='<div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(u.email||u.phone||'')+'</div></div>';
-    html+='<span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:'+sbg+';color:'+sc+'">'+u.status+'</span>';
-    if(u.role!=='owner'){
-      html+='<div style="display:flex;flex-direction:column;gap:3px">';
-      html+='<button onclick="setUserStatus(\''+u.id+'\',\'active\')" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid var(--green);background:var(--green-l);color:var(--green);cursor:pointer;font-family:inherit;touch-action:manipulation">✓</button>';
-      html+='<button onclick="setUserStatus(\''+u.id+'\',\'blocked\')" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid #FECACA;background:var(--red-l);color:var(--red);cursor:pointer;font-family:inherit;touch-action:manipulation">✕</button>';
-      html+='</div>';
-    } else {
-      html+='<span style="font-size:10px;color:var(--text3)">Owner</span>';
-    }
-    html+='</div>';
-  });
-  html+='</div></div>';
-  div.innerHTML=html;
   div.onclick=function(e){if(e.target===div)div.remove();};
+  div.innerHTML='<div class="modal center-m" onclick="event.stopPropagation()" style="width:calc(100% - 24px)" id="admin-modal-inner">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+    '<div style="font-size:16px;font-weight:800">🛡️ Admin Panel</div>'+
+    '<button class="modal-close" onclick="this.closest(\'.modal-bg\').remove()">✕</button></div>'+
+    '<div style="background:var(--blue-l);border:1px solid #BFDBFE;border-radius:var(--rs);padding:10px 12px;margin-bottom:12px;font-size:11px;color:#1E40AF">'+
+    '📊 Manage users in your <b>Google Sheet</b> — change column F to <b>active</b> or <b>blocked</b>. Or use the buttons below.</div>'+
+    '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px" id="admin-loading">⏳ Loading users from Google Sheet...</div>'+
+    '</div>';
   document.body.appendChild(div);
+  fetch(SHEET_URL,{method:'POST',body:JSON.stringify({action:'getAll'}),headers:{'Content-Type':'text/plain'}})
+  .then(function(r){return r.json();})
+  .then(function(res){
+    const inner=document.getElementById('admin-modal-inner');if(!inner)return;
+    const users=res.users||[];
+    const tot=users.length,act=users.filter(function(u){return u.status==='active';}).length;
+    const pen=users.filter(function(u){return u.status==='pending';}).length;
+    const blk=users.filter(function(u){return u.status==='blocked';}).length;
+    let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+    html+='<div class="sbox"><div class="sl">Total Users</div><div class="sv">'+tot+'</div></div>';
+    html+='<div class="sbox"><div class="sl">Active</div><div class="sv" style="color:var(--green)">'+act+'</div></div>';
+    html+='<div class="sbox"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)">'+pen+'</div></div>';
+    html+='<div class="sbox"><div class="sl">Blocked</div><div class="sv" style="color:var(--red)">'+blk+'</div></div></div>';
+    html+='<div style="max-height:45vh;overflow-y:auto">';
+    users.forEach(function(u){
+      const isOw=u.role==='owner'||u.id==='admin';
+      const sc=u.status==='active'?'var(--green)':u.status==='pending'?'var(--amber)':'var(--red)';
+      const sbg=u.status==='active'?'var(--green-l)':u.status==='pending'?'var(--amber-l)':'var(--red-l)';
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)">';
+      html+='<div class="av" style="background:'+(isOw?'var(--blue)':COLORS[2])+';width:32px;height:32px;font-size:12px">'+u.name[0].toUpperCase()+'</div>';
+      html+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+u.name+'</div>';
+      html+='<div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(u.email||u.phone||'')+'</div></div>';
+      html+='<span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:'+sbg+';color:'+sc+'">'+u.status+'</span>';
+      if(!isOw){
+        html+='<div style="display:flex;flex-direction:column;gap:3px">';
+        html+='<button onclick="setUserStatus(\''+u.id+'\',\'active\')" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid var(--green);background:var(--green-l);color:var(--green);cursor:pointer;font-family:inherit;touch-action:manipulation">✓ OK</button>';
+        html+='<button onclick="setUserStatus(\''+u.id+'\',\'blocked\')" style="padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;border:1px solid #FECACA;background:var(--red-l);color:var(--red);cursor:pointer;font-family:inherit;touch-action:manipulation">✕ Block</button>';
+        html+='</div>';
+      } else {
+        html+='<span style="font-size:10px;color:var(--blue);font-weight:600">Owner</span>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    const loading=document.getElementById('admin-loading');
+    if(loading)loading.outerHTML=html;
+  })
+  .catch(function(){
+    const loading=document.getElementById('admin-loading');
+    if(loading)loading.innerHTML='❌ Could not load. Check internet.';
+  });
 }
 function setUserStatus(uid,status){
-  const u=S.users.find(x=>x.id===uid);if(!u)return;
-  u.status=status;if(status==='active')u.sub='active';
-  save();document.querySelector('.modal-bg')?.remove();showAdminPanel();
-  toast(status==='active'?'✅ User activated!':'🚫 User blocked');
+  toast('Updating...');
+  fetch(SHEET_URL,{method:'POST',body:JSON.stringify({action:'updateStatus',id:uid,status:status}),headers:{'Content-Type':'text/plain'}})
+  .then(function(r){return r.json();})
+  .then(function(res){
+    if(res.success){
+      document.querySelector('.modal-bg')?.remove();
+      showAdminPanel();
+      toast(status==='active'?'✅ User activated! They can now login.':'🚫 User blocked immediately.');
+    } else { toast('❌ Failed: '+(res.error||'unknown')); }
+  })
+  .catch(function(){ toast('❌ Connection error. Try again.'); });
 }
 
 // ---- SUBSCRIPTION MODAL ----
